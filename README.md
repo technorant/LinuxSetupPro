@@ -39,8 +39,8 @@ LinuxSetupPro is a cross-platform setup and hardening tool for Termux, Debian/Ub
 
 ## Screenshots
 
-![Startup banner](./assets/banner.png)
-![Progress display](./assets/progress.png)
+![Startup banner](./images/startup%20banner.jpg)
+![Progress display](./images/progress%20display.jpg)
 ![Run report](./assets/report.png)
 ![Secondary menu](./assets/secondary-menu.png)
 
