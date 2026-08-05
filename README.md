@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/stars/Antech-greyhat/linux-setup-pro?style=flat-square" alt="stars" />
-  <img src="https://img.shields.io/github/v/release/Antech-greyhat/linux-setup-pro?style=flat-square" alt="release" />
+  <img src="https://img.shields.io/github/stars/Antech-greyhat/LinuxSetupPro?style=flat-square" alt="stars" />
+  <img src="https://img.shields.io/github/v/release/Antech-greyhat/LinuxSetupPro?style=flat-square" alt="release" />
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="license" />
   <img src="https://img.shields.io/badge/tested-Termux-informational?style=flat-square" alt="termux" />
   <img src="https://img.shields.io/badge/tested-Ubuntu-informational?style=flat-square" alt="ubuntu" />
@@ -21,6 +21,7 @@ LinuxSetupPro is a cross-platform setup and hardening tool for Termux, Debian/Ub
 - [Requirements](#requirements)
 - [Install on Termux](#install-on-termux)
 - [Install on Linux](#install-on-linux)
+- [Updating](#updating)
 - [CLI Flags](#cli-flags)
 - [Supported Platforms](#supported-platforms)
 - [FAQ](#faq)
@@ -56,8 +57,8 @@ LinuxSetupPro is a cross-platform setup and hardening tool for Termux, Debian/Ub
 apt update && apt upgrade -y
 pkg install git python
 pip install rich questionary PyYAML
-git clone --depth=1 https://github.com/Antech-greyhat/LinuxSetupPro.git
-cd linux-setup-pro
+git clone https://github.com/Antech-greyhat/LinuxSetupPro.git
+cd LinuxSetupPro
 python3 main.py
 ```
 
@@ -74,8 +75,8 @@ fails to compile, install it from the Termux repo instead: `pkg install python-y
 sudo apt update && sudo apt upgrade -y
 sudo apt install git python3 python3-pip
 pip3 install rich questionary PyYAML
-git clone --depth=1 https://github.com/Antech-greyhat/linux-setup-pro.git
-cd linux-setup-pro
+git clone https://github.com/Antech-greyhat/LinuxSetupPro.git
+cd LinuxSetupPro
 python3 main.py
 ```
 
@@ -85,8 +86,8 @@ python3 main.py
 sudo dnf upgrade -y
 sudo dnf install git python3 python3-pip
 pip3 install rich questionary PyYAML
-git clone --depth=1 https://github.com/Antech-greyhat/linux-setup-pro.git
-cd linux-setup-pro
+git clone https://github.com/Antech-greyhat/LinuxSetupPro.git
+cd LinuxSetupPro
 python3 main.py
 ```
 
@@ -96,8 +97,8 @@ python3 main.py
 sudo pacman -Syu
 sudo pacman -S git python python-pip
 pip install rich questionary PyYAML
-git clone --depth=1 https://github.com/Antech-greyhat/linux-setup-pro.git
-cd linux-setup-pro
+git clone https://github.com/Antech-greyhat/LinuxSetupPro.git
+cd LinuxSetupPro
 python3 main.py
 ```
 
@@ -116,6 +117,37 @@ sudo dnf install python3.11
 
 # Arch
 sudo pacman -Syu python
+```
+
+## Updating
+
+To update an existing clone to the latest changes or a new release, pull inside
+the project folder and reinstall dependencies in case they changed:
+
+```bash
+cd LinuxSetupPro
+git pull
+pip install -r requirements.txt
+python3 main.py
+```
+
+If `git pull` reports a conflict or fails because of local changes (for example
+a shallow clone from an older version), force your copy to match the remote. This
+discards local edits inside the folder:
+
+```bash
+cd LinuxSetupPro
+git fetch origin
+git reset --hard origin/main
+python3 main.py
+```
+
+To move to a specific tagged release instead of the latest commit:
+
+```bash
+cd LinuxSetupPro
+git fetch --tags
+git checkout v1.0.0
 ```
 
 ## CLI Flags
