@@ -16,17 +16,19 @@ LinuxSetupPro is a cross-platform setup and hardening tool for Termux, Debian/Ub
 
 ## Table of Contents
 
-- [Features](#features)
-- [Screenshots](#screenshots)
-- [Requirements](#requirements)
-- [Install on Termux](#install-on-termux)
-- [Install on Linux](#install-on-linux)
-- [Updating](#updating)
-- [CLI Flags](#cli-flags)
-- [Supported Platforms](#supported-platforms)
-- [FAQ](#faq)
-- [Contributing](#contributing)
-- [License](#license)
+| Section | Description |
+| --- | --- |
+| [Features](#features) | Primary and secondary install categories, progress feedback, reporting |
+| [Screenshots](#screenshots) | Visual walkthrough of the tool in action |
+| [Requirements](#requirements) | Python version, platform, dependencies |
+| [Install on Termux](#install-on-termux) | Step-by-step setup for Termux |
+| [Install on Linux](#install-on-linux) | Per-distro instructions for Debian, Fedora, Arch |
+| [Updating](#updating) | How to pull the latest changes or pin to a release |
+| [CLI Flags](#cli-flags) | All command-line options |
+| [Supported Platforms](#supported-platforms) | Detection and backend mapping |
+| [FAQ](#faq) | Common questions and answers |
+| [Contributing](#contributing) | How to add packages, error patterns, and new distros |
+| [License](#license) | MIT license |
 
 ## Features
 
@@ -163,6 +165,7 @@ git checkout v1.0.0
 | `--no-banner` | Suppress the startup and end-of-run banners. |
 | `--verbose` | Show raw subprocess output instead of the progress widgets. |
 | `--remove-banner` | Remove the persistent shell banner block and exit. |
+| `--public-ip` | Show your public IP in the startup session block. Makes one outbound request; the default shows the local IP only. |
 
 ## Supported Platforms
 
