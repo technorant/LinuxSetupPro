@@ -1,0 +1,427 @@
+# Package catalog. Each entry maps a logical tool to its real package name per backend.
+# A backend key is omitted when the package is genuinely not available there rather
+# than guessed. Omitted-backend entries are reported as unavailable at install time.
+# locked: true marks tools needing a proot chroot or root access to function.
+
+primary:
+  - category: Essentials
+    packages:
+      - name: git
+        description: Distributed version control system.
+        termux: git
+        apt: git
+        dnf: git
+        pacman: git
+      - name: curl
+        description: Transfers data from or to a server over many protocols.
+        termux: curl
+        apt: curl
+        dnf: curl
+        pacman: curl
+      - name: wget
+        description: Non-interactive network downloader.
+        termux: wget
+        apt: wget
+        dnf: wget
+        pacman: wget
+      - name: vim
+        description: Improved vi text editor.
+        termux: vim
+        apt: vim
+        dnf: vim
+        pacman: vim
+      - name: nano
+        description: Small and friendly terminal text editor.
+        termux: nano
+        apt: nano
+        dnf: nano
+        pacman: nano
+      - name: zip
+        description: Creates and modifies zip archives.
+        termux: zip
+        apt: zip
+        dnf: zip
+        pacman: zip
+      - name: unzip
+        description: Extracts zip archives.
+        termux: unzip
+        apt: unzip
+        dnf: unzip
+        pacman: unzip
+      - name: htop
+        description: Interactive process viewer.
+        termux: htop
+        apt: htop
+        dnf: htop
+        pacman: htop
+      - name: tar
+        description: Archiving utility for tape and file archives.
+        termux: tar
+        apt: tar
+        dnf: tar
+        pacman: tar
+      - name: file
+        description: Identifies file types by content.
+        termux: file
+        apt: file
+        dnf: file
+        pacman: file
+      - name: sudo
+        description: Runs commands as another user under a policy.
+        apt: sudo
+        dnf: sudo
+        pacman: sudo
+      - name: w3m
+        description: Text-based web browser and pager.
+        termux: w3m
+        apt: w3m
+        dnf: w3m
+        pacman: w3m
+
+  - category: Development
+    packages:
+      - name: python
+        description: Python interpreter and standard library.
+        termux: python
+        apt: python3
+        dnf: python3
+        pacman: python
+      - name: nodejs
+        description: JavaScript runtime built on V8.
+        termux: nodejs
+        apt: nodejs
+        dnf: nodejs
+        pacman: nodejs
+      - name: golang
+        description: Go compiler and toolchain.
+        termux: golang
+        apt: golang
+        dnf: golang
+        pacman: go
+      - name: clang
+        description: C and C++ compiler front end for LLVM.
+        termux: clang
+        apt: clang
+        dnf: clang
+        pacman: clang
+      - name: ruby
+        description: Ruby interpreter and standard library.
+        termux: ruby
+        apt: ruby
+        dnf: ruby
+        pacman: ruby
+      - name: php
+        description: PHP command-line interpreter.
+        termux: php
+        apt: php
+        dnf: php
+        pacman: php
+      - name: perl
+        description: Perl interpreter and core modules.
+        termux: perl
+        apt: perl
+        dnf: perl
+        pacman: perl
+      - name: lua
+        description: Lightweight embeddable scripting language.
+        termux: lua54
+        apt: lua5.4
+        dnf: lua
+        pacman: lua
+      - name: parallel
+        description: Runs shell jobs in parallel.
+        termux: parallel
+        apt: parallel
+        dnf: parallel
+        pacman: parallel
+
+  - category: Security/Networking
+    packages:
+      - name: openssh
+        description: SSH client for secure remote login.
+        termux: openssh
+        apt: openssh-client
+        dnf: openssh-clients
+        pacman: openssh
+      - name: nmap
+        description: Network exploration and port scanner.
+        termux: nmap
+        apt: nmap
+        dnf: nmap
+        pacman: nmap
+      - name: net-tools
+        description: Legacy networking utilities such as ifconfig and netstat.
+        termux: net-tools
+        apt: net-tools
+        dnf: net-tools
+        pacman: net-tools
+      - name: tor
+        description: Anonymizing overlay network client.
+        termux: tor
+        apt: tor
+        dnf: tor
+        pacman: tor
+      - name: proot
+        description: Runs programs in a sandboxed root filesystem without privileges.
+        termux: proot
+        apt: proot
+        dnf: proot
+      - name: whois
+        description: Queries WHOIS registration records.
+        termux: whois
+        apt: whois
+        dnf: whois
+        pacman: whois
+      - name: tcpdump
+        description: Command-line network packet analyzer.
+        termux: tcpdump
+        apt: tcpdump
+        dnf: tcpdump
+        pacman: tcpdump
+      - name: dnsutils
+        description: DNS lookup tools including dig and nslookup.
+        termux: dnsutils
+        apt: dnsutils
+        dnf: bind-utils
+        pacman: bind
+      - name: bmon
+        description: Bandwidth monitor and rate estimator.
+        termux: bmon
+        apt: bmon
+        dnf: bmon
+        pacman: bmon
+      - name: goaccess
+        description: Real-time web log analyzer and viewer.
+        termux: goaccess
+        apt: goaccess
+        dnf: goaccess
+        pacman: goaccess
+      - name: tsu
+        description: Switch to the root user inside Termux.
+        termux: tsu
+
+  - category: Fun/Terminal Flair
+    packages:
+      - name: figlet
+        description: Renders text as large ASCII banners.
+        termux: figlet
+        apt: figlet
+        dnf: figlet
+        pacman: figlet
+      - name: lolcat
+        description: Colorizes terminal output with rainbow gradients.
+        termux: lolcat
+        apt: lolcat
+        dnf: lolcat
+        pacman: lolcat
+      - name: cowsay
+        description: Prints an ASCII cow speaking a message.
+        termux: cowsay
+        apt: cowsay
+        dnf: cowsay
+        pacman: cowsay
+      - name: cmatrix
+        description: Matrix-style falling characters screen effect.
+        termux: cmatrix
+        apt: cmatrix
+        dnf: cmatrix
+        pacman: cmatrix
+      - name: toilet
+        description: Renders colorful ASCII and Unicode banner text.
+        termux: toilet
+        apt: toilet
+        dnf: toilet
+
+# Customization sub-flow. Editors are multi-select; shells are handled by the theme picker.
+customization:
+  editors:
+    - name: nano
+      description: Small and friendly terminal text editor.
+      termux: nano
+      apt: nano
+      dnf: nano
+      pacman: nano
+    - name: neovim
+      description: Refactored, extensible Vim-based editor.
+      termux: neovim
+      apt: neovim
+      dnf: neovim
+      pacman: neovim
+    - name: micro
+      description: Modern terminal editor with intuitive keybindings.
+      termux: micro
+      apt: micro
+      dnf: micro
+      pacman: micro
+    - name: emacs
+      description: Extensible, self-documenting text editor.
+      termux: emacs
+      apt: emacs
+      dnf: emacs
+      pacman: emacs
+    - name: code-server
+      description: Runs VS Code in the browser over a remote connection.
+      locked: true
+    - name: kibi
+      description: Tiny terminal text editor in a few hundred lines of Rust.
+    - name: vis
+      description: Vim-like editor with structural regular expressions.
+      dnf: vis
+      pacman: vis
+  shells:
+    zsh:
+      description: Z shell with rich interactive features.
+      termux: zsh
+      apt: zsh
+      dnf: zsh
+      pacman: zsh
+    fish:
+      description: Friendly interactive shell with autosuggestions.
+      termux: fish
+      apt: fish
+      dnf: fish
+      pacman: fish
+    starship:
+      description: Fast, minimal cross-shell prompt.
+      termux: starship
+      dnf: starship
+      pacman: starship
+
+secondary:
+  - category: OSINT/Recon
+    packages:
+      - name: theharvester
+        description: Gathers emails, subdomains, and hosts from public sources.
+        apt: theharvester
+        pacman: theharvester
+      - name: sherlock
+        description: Hunts usernames across social networks.
+        pacman: sherlock
+      - name: amass
+        description: In-depth attack surface mapping and asset discovery.
+        pacman: amass
+      - name: subfinder
+        description: Passive subdomain enumeration tool.
+        pacman: subfinder
+
+  - category: Network Analysis
+    packages:
+      - name: wireshark
+        description: Graphical network protocol analyzer.
+        apt: wireshark
+        dnf: wireshark
+        pacman: wireshark-qt
+      - name: tshark
+        description: Command-line network protocol analyzer.
+        apt: tshark
+        dnf: wireshark-cli
+        pacman: wireshark-cli
+      - name: ettercap
+        description: Suite for man-in-the-middle attacks on a LAN.
+        apt: ettercap-text-only
+        dnf: ettercap
+        pacman: ettercap
+      - name: iproute2
+        description: Modern IP routing and network configuration tools.
+        termux: iproute2
+        apt: iproute2
+        dnf: iproute
+        pacman: iproute2
+
+  - category: Web App Testing
+    packages:
+      - name: sqlmap
+        description: Automatic SQL injection detection and exploitation.
+        apt: sqlmap
+        dnf: sqlmap
+        pacman: sqlmap
+      - name: nikto
+        description: Web server scanner for known vulnerabilities.
+        apt: nikto
+        pacman: nikto
+      - name: gobuster
+        description: Directory, DNS, and vhost brute-forcing tool.
+        pacman: gobuster
+      - name: dirb
+        description: Web content scanner using wordlists.
+        apt: dirb
+        pacman: dirb
+      - name: ffuf
+        description: Fast web fuzzer written in Go.
+        pacman: ffuf
+
+  - category: Password/Auth Testing
+    packages:
+      - name: hydra
+        description: Parallelized network login cracker.
+        termux: hydra
+        apt: hydra
+        dnf: hydra
+        pacman: hydra
+      - name: john
+        description: John the Ripper password cracker.
+        termux: john
+        apt: john
+        dnf: john
+        pacman: john
+      - name: hashcat
+        description: Advanced GPU-accelerated password recovery.
+        apt: hashcat
+        dnf: hashcat
+        pacman: hashcat
+      - name: crunch
+        description: Wordlist generator for brute-force attacks.
+        termux: crunch
+        apt: crunch
+        pacman: crunch
+
+  - category: Wireless
+    packages:
+      - name: aircrack-ng
+        description: Suite for assessing Wi-Fi network security.
+        locked: true
+        termux: aircrack-ng
+        apt: aircrack-ng
+        dnf: aircrack-ng
+        pacman: aircrack-ng
+
+  - category: Exploitation Frameworks
+    packages:
+      - name: metasploit-framework
+        description: Penetration testing and exploit development framework.
+        locked: true
+        termux: metasploit
+        pacman: metasploit
+      - name: proot-distro
+        description: Installs and manages Linux distributions under proot on Termux.
+        termux: proot-distro
+
+  - category: Forensics/Misc
+    packages:
+      - name: binwalk
+        description: Firmware image analysis and extraction tool.
+        termux: binwalk
+        apt: binwalk
+        dnf: binwalk
+        pacman: binwalk
+      - name: exiftool
+        description: Reads and writes file metadata across many formats.
+        termux: exiftool
+        apt: libimage-exiftool-perl
+        dnf: perl-Image-ExifTool
+        pacman: perl-image-exiftool
+      - name: volatility3
+        description: Memory forensics and incident response framework.
+        pacman: volatility3
+      - name: radare2
+        description: Reverse engineering framework and disassembler.
+        termux: radare2
+        apt: radare2
+        dnf: radare2
+        pacman: radare2
+      - name: pass
+        description: Standard Unix password manager built on GnuPG.
+        termux: pass
+        apt: pass
+        dnf: pass
+        pacman: pass

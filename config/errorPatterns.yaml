@@ -1,0 +1,44 @@
+# Error patterns matched against captured stderr, in order. First match wins.
+# suggestion is keyed by backend; use "all" for a backend-agnostic message.
+
+patterns:
+  - match: "Unable to locate package|Target Packages .* configured|No match for argument|error: target not found"
+    cause: The package index is outdated or the package name is not in the enabled repositories.
+    suggestion:
+      termux: Refresh the index with "pkg update" and try again.
+      apt: Refresh the index with "sudo apt update", then retry.
+      dnf: Refresh metadata with "sudo dnf makecache", then retry.
+      pacman: Sync the databases with "sudo pacman -Sy", then retry.
+      all: Update your package index and confirm the package name for your distribution.
+
+  - match: "Could not resolve host|Network is unreachable|Temporary failure in name resolution|Failed to connect|Connection timed out"
+    cause: The package manager could not reach the network.
+    suggestion:
+      all: Check your internet connection and any proxy or DNS settings, then retry.
+
+  - match: "Unable to acquire.*lock|Could not get lock|failed to obtain lock|another instance"
+    cause: Another package manager process holds the lock, or a stale lock file remains.
+    suggestion:
+      apt: Close other apt sessions. If none are running, remove the stale lock with "sudo rm /var/lib/apt/lists/lock /var/lib/dpkg/lock-frontend" and retry.
+      dnf: Wait for other dnf or PackageKit processes to finish, then retry.
+      pacman: If no pacman is running, remove the stale lock with "sudo rm /var/lib/pacman/db.lck" and retry.
+      termux: Close other Termux sessions running pkg or apt, then retry.
+      all: Ensure no other package manager is running before retrying.
+
+  - match: "No space left|insufficient.*space|not enough free"
+    cause: The target filesystem is out of free space.
+    suggestion:
+      termux: Free space by clearing the cache with "pkg clean" and removing unused files.
+      apt: Free space with "sudo apt clean" and by removing unused packages via "sudo apt autoremove".
+      dnf: Free space with "sudo dnf clean all" and remove unused packages.
+      pacman: Free space with "sudo pacman -Sc" and remove unused packages.
+      all: Free disk space and retry.
+
+  - match: "NO_PUBKEY|GPG error|signature.*invalid|key.*not.*available|PGP signature|corrupted"
+    cause: A repository signing key is missing or untrusted.
+    suggestion:
+      apt: Import the missing key advertised by the error, then run "sudo apt update".
+      dnf: Import the repository key with "sudo dnf install distribution-gpg-keys" or refresh metadata.
+      pacman: Refresh keys with "sudo pacman-key --refresh-keys" and reinstall archlinux-keyring.
+      termux: Reinstall the keyring with "pkg install termux-keyring", then update.
+      all: Update or import the repository signing key and retry.
