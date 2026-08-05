@@ -19,7 +19,8 @@ LinuxSetupPro is a cross-platform setup and hardening tool for Termux, Debian/Ub
 - [Features](#features)
 - [Screenshots](#screenshots)
 - [Requirements](#requirements)
-- [Installation](#installation)
+- [Install on Termux](#install-on-termux)
+- [Install on Linux](#install-on-linux)
 - [CLI Flags](#cli-flags)
 - [Supported Platforms](#supported-platforms)
 - [FAQ](#faq)
@@ -49,37 +50,72 @@ LinuxSetupPro is a cross-platform setup and hardening tool for Termux, Debian/Ub
 - One of the supported platforms and its package manager (pkg, apt, dnf, or pacman)
 - Python packages listed in `requirements.txt` (rich, questionary, PyYAML)
 
-## Installation
+## Install on Termux
 
-Check your Python version first:
-
+```bash
+apt update && apt upgrade -y
+pkg install git python
+pip install rich questionary PyYAML
+git clone --depth=1 https://github.com/Antech-greyhat/linux-setup-pro.git
+cd linux-setup-pro
+python3 main.py
 ```
-python3 --version
+
+If `pip` is not available run `python3 -m ensurepip --upgrade` first. If PyYAML
+fails to compile, install it from the Termux repo instead: `pkg install python-yaml`.
+
+---
+
+## Install on Linux
+
+### Debian / Ubuntu
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install git python3 python3-pip
+pip3 install rich questionary PyYAML
+git clone --depth=1 https://github.com/Antech-greyhat/linux-setup-pro.git
+cd linux-setup-pro
+python3 main.py
 ```
 
-If it is older than 3.8, install a newer Python for your platform:
+### Fedora / RHEL
 
+```bash
+sudo dnf upgrade -y
+sudo dnf install git python3 python3-pip
+pip3 install rich questionary PyYAML
+git clone --depth=1 https://github.com/Antech-greyhat/linux-setup-pro.git
+cd linux-setup-pro
+python3 main.py
 ```
+
+### Arch / BlackArch / Manjaro
+
+```bash
+sudo pacman -Syu
+sudo pacman -S git python python-pip
+pip install rich questionary PyYAML
+git clone --depth=1 https://github.com/Antech-greyhat/linux-setup-pro.git
+cd linux-setup-pro
+python3 main.py
+```
+
+Python 3.8 or newer is required. Check with `python3 --version` before running.
+If your version is older, upgrade it first:
+
+```bash
 # Termux
 pkg upgrade python
 
 # Debian / Ubuntu
-sudo apt update && sudo apt install python3.10
+sudo apt install python3.10
 
 # Fedora
 sudo dnf install python3.11
 
 # Arch
 sudo pacman -Syu python
-```
-
-Then clone and run:
-
-```
-git clone https://github.com/Antech-greyhat/linux-setup-pro.git
-cd linux-setup-pro
-pip install -r requirements.txt
-python3 main.py
 ```
 
 ## CLI Flags
