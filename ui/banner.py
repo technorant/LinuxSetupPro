@@ -1,44 +1,89 @@
 """Startup and end-of-run banners with the developer info block."""
 
+import getpass
 import shutil
+import socket
 import subprocess
+from datetime import datetime
 
-from rich.console import Console
+from rich.align import Align
+from rich.box import DOUBLE, ROUNDED
+from rich.console import Console, Group
 from rich.panel import Panel
 from rich.text import Text
 
 from core import detector
 from ui import theme
 
+# Generated with figlet (small font); embedded to avoid a runtime dependency.
 _LOGO = r"""
- _     _                  ____       _               ____
-| |   (_)_ __  _   ___  _/ ___|  ___| |_ _   _ _ __ |  _ \ _ __ ___
-| |   | | '_ \| | | \ \/ \___ \ / _ \ __| | | | '_ \| |_) | '__/ _ \
-| |___| | | | | |_| |>  <  ___) |  __/ |_| |_| | |_) |  __/| | | (_) |
-|_____|_|_| |_|\__,_/_/\_\|____/ \___|\__|\__,_| .__/|_|   |_|  \___/
-                                               |_|
+ _    _               ___      _             ___
+| |  (_)_ _ _  ___ __/ __| ___| |_ _  _ _ __| _ \_ _ ___
+| |__| | ' \ || \ \ /\__ \/ -_)  _| || | '_ \  _/ '_/ _ \
+|____|_|_||_\_,_/_\_\|___/\___|\__|\_,_| .__/_| |_| \___/
+                                       |_|
+""".strip("\n")
+
+_LOGO_DONE = r"""
+ ___ ___ _____ _   _ ___    ___ ___  __  __ ___ _    ___ _____ ___
+/ __| __|_   _| | | | _ \  / __/ _ \|  \/  | _ \ |  | __|_   _| __|
+\__ \ _|  | | | |_| |  _/ | (_| (_) | |\/| |  _/ |__| _|  | | | _|
+|___/___| |_|  \___/|_|    \___\___/|_|  |_|_| |____|___| |_| |___|
 """.strip("\n")
 
 _DEV = [
-    ("Author", "Antech"),
-    ("GitHub", "https://github.com/Antech-greyhat"),
-    ("Telegram", "https://t.me/AntechDevSecOps"),
+    ("DEVELOPER", "Antech"),
+    ("GITHUB", "https://github.com/Antech-greyhat"),
+    ("TELEGRAM", "https://t.me/AntechDevSecOps"),
     ("X", "https://x.com/Antech1629"),
-    ("LinkedIn", "https://www.linkedin.com/in/antony-mwendwa-07679336b"),
+    ("LINKEDIN", "https://www.linkedin.com/in/antony-mwendwa-07679336b"),
 ]
+
+_LABEL_WIDTH = 10
+
+
+def _kv_block(rows, value_style="white"):
+    """Render aligned '[+] LABEL > value' rows as a single Text."""
+    body = Text()
+    for i, (label, value) in enumerate(rows):
+        body.append("[+] ", style="green")
+        body.append(f"{label:<{_LABEL_WIDTH}}", style=theme.HEADING)
+        body.append("> ", style=theme.DIM)
+        body.append(value, style=value_style)
+        if i < len(rows) - 1:
+            body.append("\n")
+    return body
+
+
+def _logo_panel(logo, subtitle, title, border_style):
+    header = Text(logo, style=border_style)
+    group = Group(Align.center(header), Align.center(Text(subtitle, style=theme.DIM)))
+    return Panel(group, box=DOUBLE, border_style=border_style, title=title,
+                 title_align="center", padding=(1, 3), expand=False)
+
+
+def _info_panel(rows, title, border_style, value_style="cyan"):
+    return Panel(_kv_block(rows, value_style), box=ROUNDED, border_style=border_style,
+                 title=title, title_align="left", padding=(0, 2), expand=False)
+
+
+def _session_rows():
+    now = datetime.now()
+    return [
+        ("USER", getpass.getuser()),
+        ("HOST", socket.gethostname()),
+        ("DATE", now.strftime("%d %B %Y")),
+        ("TIME", now.strftime("%H:%M")),
+    ]
 
 
 def show_startup(version, console=None):
     console = console or Console()
-    console.print(Text(_LOGO, style=theme.BRAND))
-    console.print(Text(f"LinuxSetupPro v{version}", style=theme.HEADING))
     console.print()
-    for label, value in _DEV:
-        line = Text()
-        line.append(f"{label:<9}", style=theme.ACCENT)
-        line.append(value, style="white")
-        console.print(line)
-    console.print()
+    console.print(_logo_panel(_LOGO, f"v{version}  cross-platform setup and hardening",
+                              "[ BUILT BY ANTECH ]", theme.BRAND))
+    console.print(_info_panel(_DEV, "[ DEVELOPER ]", theme.ACCENT))
+    console.print(_info_panel(_session_rows(), "[ SESSION ]", theme.BRAND, value_style="green"))
     console.print(Text("If this tool saves you time, a star on GitHub is appreciated.", style=theme.DIM))
     console.print()
 
@@ -46,18 +91,18 @@ def show_startup(version, console=None):
 def show_end(version, platform_info, console=None, ask_open=True, input_fn=input):
     console = console or Console()
     console.print()
-    console.rule("Done", style=theme.BRAND)
-    console.print(Text(f"LinuxSetupPro v{version} by Antech", style=theme.HEADING))
-    console.print(Text("GitHub:   https://github.com/Antech-greyhat", style="white"))
-    console.print(Text("Telegram: https://t.me/AntechDevSecOps", style="white"))
-    console.print()
-    console.print(Text("Support development:", style=theme.HEADING))
-    console.print(Text("  GitHub: https://github.com/Antech-greyhat", style="white"))
+    console.print(_logo_panel(_LOGO_DONE, f"LinuxSetupPro v{version}  setup finished",
+                              "[ COMPLETE ]", theme.ACCENT))
+    console.print(_info_panel(
+        [("AUTHOR", "Antech"),
+         ("GITHUB", "https://github.com/Antech-greyhat"),
+         ("TELEGRAM", "https://t.me/AntechDevSecOps")],
+        "[ SUPPORT DEVELOPMENT ]", theme.ACCENT))
     console.print()
 
     if not ask_open:
         return
-    answer = input_fn("Open in browser now? [y/n] ").strip().lower()
+    answer = input_fn("Open GitHub in browser now? [y/n] ").strip().lower()
     if answer in ("y", "yes"):
         _open_url("https://github.com/Antech-greyhat", platform_info)
 
