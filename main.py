@@ -48,6 +48,8 @@ def build_parser():
                         help="show raw subprocess output instead of progress widgets")
     parser.add_argument("--remove-banner", action="store_true",
                         help="remove the persistent shell banner block and exit")
+    parser.add_argument("--public-ip", action="store_true",
+                        help="show public IP in the startup session block (makes an outbound request)")
     return parser
 
 
@@ -322,7 +324,7 @@ def main(argv=None):
         return 0
 
     if not args.no_banner:
-        banner.show_startup(VERSION, console)
+        banner.show_startup(VERSION, console, public_ip=args.public_ip)
 
     plat = resolve_platform(console)
     check_python_version(plat, console)

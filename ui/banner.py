@@ -4,6 +4,7 @@ import getpass
 import shutil
 import socket
 import subprocess
+import urllib.request
 from datetime import datetime
 
 from rich.align import Align
@@ -67,23 +68,45 @@ def _info_panel(rows, title, border_style, value_style="cyan"):
                  title=title, title_align="left", padding=(0, 2), expand=False)
 
 
-def _session_rows():
+def _local_ip():
+    """Primary outbound-interface IP without sending any packets."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except OSError:
+        return "unavailable"
+    finally:
+        s.close()
+
+
+def _public_ip():
+    try:
+        with urllib.request.urlopen("https://api.ipify.org", timeout=3) as resp:
+            return resp.read().decode("utf-8").strip() or "unavailable"
+    except Exception:
+        return "unavailable"
+
+
+def _session_rows(public_ip=False):
     now = datetime.now()
+    ip = _public_ip() if public_ip else _local_ip()
     return [
         ("USER", getpass.getuser()),
         ("HOST", socket.gethostname()),
+        ("IP", ip),
         ("DATE", now.strftime("%d %B %Y")),
         ("TIME", now.strftime("%H:%M")),
     ]
 
 
-def show_startup(version, console=None):
+def show_startup(version, console=None, public_ip=False):
     console = console or Console()
     console.print()
     console.print(_logo_panel(_LOGO, f"v{version}  cross-platform setup and hardening",
                               "[ BUILT BY ANTECH ]", theme.BRAND))
     console.print(_info_panel(_DEV, "[ DEVELOPER ]", theme.ACCENT))
-    console.print(_info_panel(_session_rows(), "[ SESSION ]", theme.BRAND, value_style="green"))
+    console.print(_info_panel(_session_rows(public_ip), "[ SESSION ]", theme.BRAND, value_style="green"))
     console.print(Text("If this tool saves you time, a star on GitHub is appreciated.", style=theme.DIM))
     console.print()
 

@@ -56,7 +56,7 @@ LinuxSetupPro is a cross-platform setup and hardening tool for Termux, Debian/Ub
 apt update && apt upgrade -y
 pkg install git python
 pip install rich questionary PyYAML
-git clone --depth=1 https://github.com/Antech-greyhat/linux-setup-pro.git
+git clone --depth=1 https://github.com/Antech-greyhat/LinuxSetupPro.git
 cd linux-setup-pro
 python3 main.py
 ```
