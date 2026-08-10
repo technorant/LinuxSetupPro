@@ -36,16 +36,15 @@ LinuxSetupPro is a cross-platform setup and hardening tool for Termux, Debian/Ub
 - Opt-in secondary menu of OSINT, network analysis, web-app testing, password-auth, wireless, exploitation, and forensics tools.
 - Real progress feedback per package, alternating a progress bar and a spinner, with a distinct color per status.
 - Honest error reporting: captured stderr is matched against known patterns to explain the cause and suggest a platform-specific fix. Unrecognized errors are shown verbatim, never invented.
-- Per-run reports saved as machine-readable JSON and plain-text logs.
+- Per-run reports appended to plain-text files under `reports/`, readable in any editor.
 - Persistent hacker-style terminal banner generator with figlet fonts and color schemes.
 - `--dry-run` shows exactly what would change without executing anything.
 
 ## Screenshots
 
 ![Startup banner](./images/startup%20banner.jpg)
+![Startup banner detail](./images/extra%20for%20startup.jpg)
 ![Progress display](./images/progress%20display.jpg)
-![Run report](./assets/report.png)
-![Secondary menu](./assets/secondary-menu.png)
 
 ## Requirements
 
@@ -160,7 +159,7 @@ git checkout v1.0.0
 | `--only primary` | Run the primary categories only and skip the secondary menu. |
 | `--only secondary` | Jump straight to the secondary tools menu. |
 | `--set-editor` | Reopen the editor picker, update `EDITOR`, then exit. |
-| `--report` | Print the most recent saved report and exit. |
+| `--report` | Print the saved installation reports from `reports/` and exit. |
 | `--version` | Print the tool version and exit. |
 | `--no-banner` | Suppress the startup and end-of-run banners. |
 | `--verbose` | Show raw subprocess output instead of the progress widgets. |
@@ -179,7 +178,7 @@ git checkout v1.0.0
 ## FAQ
 
 **What happens when a package fails to install?**
-The run continues. The package is marked `failed`, and the report shows the cause and a platform-specific suggestion when the error is recognized, or the raw stderr and a pointer to the JSON log when it is not.
+The run continues. The package is marked `failed`, and the report records the cause and a platform-specific suggestion when the error is recognized, or the raw stderr when it is not. Reports are appended to plain-text files under `reports/` (`primary_installation.txt` and `secondary_installation.txt`); view them with any editor or run `python3 main.py --report`.
 
 **How do I remove the terminal banner?**
 Run `python3 main.py --remove-banner`. It strips the marked block from your `.bashrc` or `.zshrc`. Restart your terminal afterwards.
