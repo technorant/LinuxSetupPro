@@ -29,6 +29,7 @@ LinuxSetupPro is a cross-platform setup and hardening tool for Termux, Debian/Ub
 | [FAQ](#faq) | Common questions and answers |
 | [Contributing](#contributing) | How to add packages, error patterns, and new distros |
 | [License](#license) | MIT license |
+| [Developer](#developer) | Author and social links |
 
 ## Features
 
@@ -197,6 +198,18 @@ Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add
 
 Released under the [MIT License](LICENSE), copyright Antech.
 
+## Developer
+
+Built and maintained by Antech.
+
+| Platform | Link |
+| --- | --- |
+| GitHub | [Antech-greyhat](https://github.com/Antech-greyhat) |
+| Telegram | [AntechDevSecOps](https://t.me/AntechDevSecOps) |
+| X (Twitter) | [Antech1629](https://x.com/Antech1629) |
+| LinkedIn | [Antony Mwendwa](https://www.linkedin.com/in/antony-mwendwa-07679336b) |
+| WhatsApp | [+254714452396](https://wa.me/254714452396) |
+
 ---
 
-Built by Antech. If LinuxSetupPro is useful to you, consider a star and a follow at https://github.com/Antech-greyhat.
+Built by Antech. If LinuxSetupPro is useful to you, consider a star and a follow at [github.com/Antech-greyhat](https://github.com/Antech-greyhat).
