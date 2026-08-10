@@ -40,7 +40,7 @@ def build_parser():
     parser.add_argument("--set-editor", action="store_true",
                         help="reopen the editor picker, update EDITOR, then exit")
     parser.add_argument("--report", action="store_true",
-                        help="print the most recent saved report and exit")
+                        help="print the saved installation reports and exit")
     parser.add_argument("--version", action="store_true", help="print the version and exit")
     parser.add_argument("--no-banner", action="store_true",
                         help="suppress the startup and end-of-run banners")
@@ -90,9 +90,8 @@ def run_primary(inst, catalog, plat, console, dry_run, verbose):
     records.extend(custom_records)
 
     elapsed = time.monotonic() - started
-    rpt = Report("primary", plat.pretty_name, plat.backend_key, console)
-    log_path, _ = rpt.save(records, elapsed, notes)
-    rpt.render(records, elapsed, log_path, notes)
+    rpt = Report("primary", plat.pretty_name, plat.backend_key)
+    rpt.write(records, elapsed, notes)
     return records
 
 
@@ -228,19 +227,9 @@ def run_secondary(inst, catalog, plat, console):
     records = inst.install_sequence(chosen)
     elapsed = time.monotonic() - started
 
-    notes = _locked_notes(records)
-    rpt = Report("secondary", plat.pretty_name, plat.backend_key, console)
-    log_path, _ = rpt.save(records, elapsed, notes)
-    rpt.render(records, elapsed, log_path, notes)
+    rpt = Report("secondary", plat.pretty_name, plat.backend_key)
+    rpt.write(records, elapsed)
     return records
-
-
-def _locked_notes(records):
-    notes = []
-    for record in records:
-        if record.locked and record.status in (INSTALLED, "already installed", "upgraded"):
-            notes.append(f"{record.name} [LOCKED]: requires a proot chroot or root access to function.")
-    return notes
 
 
 def banner_generation_flow(backend, plat, console, dry_run):
@@ -272,12 +261,12 @@ def banner_generation_flow(backend, plat, console, dry_run):
 
 
 def action_report(console):
-    path = report.latest_log()
-    if not path:
-        console.print("No saved reports found in logs/.", style=theme.WARN)
+    content = report.read_reports()
+    if content is None:
+        console.print("No reports found. Run an install first to generate reports/.", style=theme.WARN)
         return
-    with open(path, "r", encoding="utf-8") as fh:
-        console.print(fh.read())
+    # Reports are plain text with no markup; print without style interpretation.
+    console.print(content, markup=False, highlight=False)
 
 
 def action_remove_banner(console):

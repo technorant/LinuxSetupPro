@@ -1,20 +1,52 @@
-"""Builds the terminal report and writes JSON and plain-text logs per run."""
+"""Writes append-only, plain-text installation reports under reports/."""
 
-import json
 import os
 from datetime import datetime
 
-from rich.console import Console
-from rich.text import Text
+from core.packageManager import (
+    ALREADY_INSTALLED,
+    INSTALLED,
+    UPGRADED,
+    SKIPPED,
+    FAILED,
+)
 
-from ui import theme
-from core.packageManager import FAILED
+_REPORT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "reports")
 
-_LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
+_FILENAMES = {
+    "primary": "primary_installation.txt",
+    "secondary": "secondary_installation.txt",
+}
+
+# Title-cased labels used in the Status column.
+_STATUS_LABEL = {
+    ALREADY_INSTALLED: "Already Installed",
+    INSTALLED: "Installed",
+    UPGRADED: "Upgraded",
+    SKIPPED: "Skipped",
+    FAILED: "Failed",
+}
+
+# Order and wording of the per-status counts on the summary line.
+_SUMMARY_ORDER = [INSTALLED, ALREADY_INSTALLED, UPGRADED, SKIPPED, FAILED]
+_SUMMARY_LABEL = {
+    INSTALLED: "installed",
+    ALREADY_INSTALLED: "already present",
+    UPGRADED: "upgraded",
+    SKIPPED: "skipped",
+    FAILED: "failed",
+}
+
+_INSTALLED_STATES = (INSTALLED, ALREADY_INSTALLED, UPGRADED)
+
+_INDENT = "  "
+_GAP = "  "
+_WIDTH = 60
+_DESC_DASHES = 26
 
 
 class PackageRecord:
-    """One package's outcome, carrying enough detail for both the report and the JSON log."""
+    """One package's outcome, carrying enough detail to render its report row."""
 
     def __init__(self, category, name, description, status, locked=False,
                  result=None, cause=None, suggestion=None, available=True):
@@ -28,28 +60,13 @@ class PackageRecord:
         self.suggestion = suggestion
         self.available = available
 
-    def as_dict(self):
-        data = {
-            "category": self.category,
-            "name": self.name,
-            "description": self.description,
-            "status": self.status,
-            "locked": self.locked,
-            "available": self.available,
-            "cause": self.cause,
-            "suggestion": self.suggestion,
-        }
-        if self.result is not None:
-            data["operation"] = self.result.as_dict()
-        return data
-
 
 def _timestamp():
-    return datetime.now().strftime("%Y%m%d_%H%M%S")
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-def _ensure_log_dir():
-    os.makedirs(_LOG_DIR, exist_ok=True)
+def _ensure_report_dir():
+    os.makedirs(_REPORT_DIR, exist_ok=True)
 
 
 def _group_by_category(records):
@@ -59,117 +76,101 @@ def _group_by_category(records):
     return grouped
 
 
+def _status_label(status):
+    return _STATUS_LABEL.get(status, status.title())
+
+
 class Report:
-    def __init__(self, kind, platform_name, backend_key, console=None):
+    def __init__(self, kind, platform_name, backend_key):
         self.kind = kind  # "primary" or "secondary"
         self.platform_name = platform_name
         self.backend_key = backend_key
-        self.console = console or Console()
 
-    def render(self, records, elapsed, log_path, notes=None):
-        self.console.print()
-        self.console.rule(f"{self.kind.capitalize()} report", style=theme.BRAND)
-        for category, items in _group_by_category(records).items():
-            self.console.print(Text(category, style=theme.HEADING))
-            for record in items:
-                self._render_line(record)
-            self.console.print()
+    def path(self):
+        return os.path.join(_REPORT_DIR, _FILENAMES.get(self.kind, f"{self.kind}.txt"))
 
-        if notes:
-            for note in notes:
-                self.console.print(Text(note, style=theme.DIM))
-            self.console.print()
+    def write(self, records, elapsed, notes=None):
+        """Append this run's dated block to the report file. Returns the file path."""
+        _ensure_report_dir()
+        path = self.path()
+        block = self._render_block(records, elapsed, notes)
+        prefix = "\n" if os.path.isfile(path) and os.path.getsize(path) > 0 else ""
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(prefix + block)
+        return path
 
-        self._render_summary(records, elapsed)
-        self.console.print(Text(f"Full log: {log_path}", style=theme.DIM))
+    def _render_block(self, records, elapsed, notes):
+        pkg_w = max([len("Package")] + [len(r.name) for r in records]) if records else len("Package")
+        status_w = max([len("Status")] + [len(_status_label(r.status)) for r in records]) \
+            if records else len("Status")
+        sub_indent = " " * (len(_INDENT) + pkg_w + len(_GAP))
 
-    def _render_line(self, record):
-        line = Text("  ")
-        line.append(f"{record.name} ", style="white")
-        if record.locked:
-            line.append(f"{theme.MARKER_LOCKED} ", style=theme.WARN)
-        line.append(record.status, style=theme.status_style(record.status))
-        line.append(f"  {record.description}", style=theme.DIM)
-        self.console.print(line)
-
-        if record.status == FAILED:
-            if record.cause:
-                self.console.print(Text(f"    reason: {record.cause}", style=theme.WARN))
-                self.console.print(Text(f"    suggestion: {record.suggestion}", style=theme.WARN))
-            else:
-                raw = (record.result.stderr.strip() if record.result else "").splitlines()
-                snippet = raw[-1] if raw else "no stderr captured"
-                self.console.print(Text(f"    reason: unrecognized error", style=theme.WARN))
-                self.console.print(Text(f"    stderr: {snippet}", style=theme.DIM))
-                self.console.print(Text("    see the JSON log for full output", style=theme.DIM))
-
-    def _render_summary(self, records, elapsed):
-        counts = {}
-        for record in records:
-            counts[record.status] = counts.get(record.status, 0) + 1
-        summary = Text("Summary: ", style=theme.HEADING)
-        parts = [f"{status}={count}" for status, count in counts.items()]
-        summary.append(", ".join(parts) if parts else "nothing to do")
-        self.console.print(summary)
-        self.console.print(Text(f"Elapsed: {elapsed:.1f}s", style=theme.DIM))
-
-    def save(self, records, elapsed, notes=None):
-        """Write JSON and plain-text logs. Returns the .log path for display."""
-        _ensure_log_dir()
-        stamp = _timestamp()
-        json_path = os.path.join(_LOG_DIR, f"{stamp}_{self.kind}.json")
-        log_path = os.path.join(_LOG_DIR, f"{stamp}_{self.kind}.log")
-
-        payload = {
-            "kind": self.kind,
-            "platform": self.platform_name,
-            "backend": self.backend_key,
-            "timestamp": stamp,
-            "elapsed_seconds": round(elapsed, 3),
-            "packages": [r.as_dict() for r in records],
-            "notes": notes or [],
-        }
-        with open(json_path, "w", encoding="utf-8") as fh:
-            json.dump(payload, fh, indent=2)
-
-        with open(log_path, "w", encoding="utf-8") as fh:
-            fh.write(self._plain_text(records, elapsed, notes))
-
-        return log_path, json_path
-
-    def _plain_text(self, records, elapsed, notes):
-        lines = [f"{self.kind.upper()} REPORT",
-                 f"Platform: {self.platform_name} (backend: {self.backend_key})",
+        lines = ["=" * _WIDTH,
+                 f" {self.kind.upper()} INSTALLATION REPORT",
+                 f" Run: {_timestamp()}",
+                 "=" * _WIDTH,
                  ""]
+
         for category, items in _group_by_category(records).items():
-            lines.append(category)
+            lines.append(category.upper())
+            lines.append("-" * _WIDTH)
+            lines.append(_INDENT + "Package".ljust(pkg_w) + _GAP + "Status".ljust(status_w) + _GAP + "Description")
+            lines.append(_INDENT + "-" * pkg_w + _GAP + "-" * status_w + _GAP + "-" * _DESC_DASHES)
             for record in items:
-                marker = f" {theme.MARKER_LOCKED}" if record.locked else ""
-                lines.append(f"  {record.name}{marker}  {record.status}  {record.description}")
-                if record.status == FAILED:
-                    if record.cause:
-                        lines.append(f"    reason: {record.cause}")
-                        lines.append(f"    suggestion: {record.suggestion}")
-                    elif record.result and record.result.stderr:
-                        tail = record.result.stderr.strip().splitlines()
-                        lines.append(f"    stderr: {tail[-1] if tail else ''}")
+                lines.extend(self._render_row(record, pkg_w, status_w, sub_indent))
             lines.append("")
+
         if notes:
-            lines.extend(notes)
+            lines.append("NOTES")
+            lines.append("-" * _WIDTH)
+            for note in notes:
+                lines.append(_INDENT + note)
             lines.append("")
-        counts = {}
-        for record in records:
-            counts[record.status] = counts.get(record.status, 0) + 1
-        lines.append("Summary: " + ", ".join(f"{k}={v}" for k, v in counts.items()))
-        lines.append(f"Elapsed: {elapsed:.1f}s")
+
+        lines.append("-" * _WIDTH)
+        lines.append(f" SUMMARY: {self._summary(records)}")
+        lines.append(f" Duration: {int(round(elapsed))}s")
+        lines.append("=" * _WIDTH)
         return "\n".join(lines) + "\n"
 
+    def _render_row(self, record, pkg_w, status_w, sub_indent):
+        rows = [_INDENT + record.name.ljust(pkg_w) + _GAP
+                + _status_label(record.status).ljust(status_w) + _GAP + record.description]
 
-def latest_log():
-    """Return the path to the most recent .log file, or None."""
-    if not os.path.isdir(_LOG_DIR):
+        if record.status == FAILED:
+            reason, suggestion = self._failure_detail(record)
+            rows.append(sub_indent + f"Reason: {reason}")
+            rows.append(sub_indent + f"Suggestion: {suggestion}")
+
+        # Locked tools carry a persistent chroot/root reminder once installed.
+        if record.locked and record.status in _INSTALLED_STATES:
+            rows.append(sub_indent + "Note: Requires a proot chroot or root access to function.")
+
+        return rows
+
+    def _failure_detail(self, record):
+        if record.cause:
+            return record.cause, record.suggestion or ""
+        tail = (record.result.stderr.strip().splitlines() if record.result and record.result.stderr else [])
+        reason = tail[-1] if tail else "unrecognized error"
+        return reason, "Re-run with --verbose to see full output."
+
+    def _summary(self, records):
+        counts = {}
+        for record in records:
+            counts[record.status] = counts.get(record.status, 0) + 1
+        parts = [f"{counts[s]} {_SUMMARY_LABEL[s]}" for s in _SUMMARY_ORDER if counts.get(s)]
+        return " | ".join(parts) if parts else "nothing to do"
+
+
+def read_reports():
+    """Return the combined text of the saved report files, or None if none exist."""
+    chunks = []
+    for kind in ("primary", "secondary"):
+        path = os.path.join(_REPORT_DIR, _FILENAMES[kind])
+        if os.path.isfile(path):
+            with open(path, "r", encoding="utf-8") as fh:
+                chunks.append(fh.read())
+    if not chunks:
         return None
-    logs = [os.path.join(_LOG_DIR, f) for f in os.listdir(_LOG_DIR) if f.endswith(".log")]
-    if not logs:
-        return None
-    return max(logs, key=os.path.getmtime)
+    return "\n".join(chunks)
