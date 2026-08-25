@@ -58,27 +58,30 @@ LinuxSetupPro is a cross-platform setup and hardening tool for Termux, Debian/Ub
 ```bash
 apt update && apt upgrade -y
 pkg install git python
-pip install rich questionary PyYAML
 git clone https://github.com/Antech-greyhat/LinuxSetupPro.git
 cd LinuxSetupPro
+pip install -r requirements.txt
 python3 main.py
 ```
 
-If `pip` is not available run `python3 -m ensurepip --upgrade` first. If PyYAML
-fails to compile, install it from the Termux repo instead: `pkg install python-yaml`.
+Termux pip is not externally managed, so no virtual environment is needed. If
+`pip` is missing run `python3 -m ensurepip --upgrade` first. If PyYAML fails to
+compile, install it from the Termux repo instead: `pkg install python-yaml`.
 
 ---
 
 ## Install on Linux
 
-### Debian / Ubuntu
+### Debian / Ubuntu / Kali / Parrot
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install git python3 python3-pip
-pip3 install rich questionary PyYAML
+sudo apt install -y git python3 python3-venv
 git clone https://github.com/Antech-greyhat/LinuxSetupPro.git
 cd LinuxSetupPro
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 python3 main.py
 ```
 
@@ -86,23 +89,43 @@ python3 main.py
 
 ```bash
 sudo dnf upgrade -y
-sudo dnf install git python3 python3-pip
-pip3 install rich questionary PyYAML
+sudo dnf install -y git python3
 git clone https://github.com/Antech-greyhat/LinuxSetupPro.git
 cd LinuxSetupPro
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 python3 main.py
 ```
 
 ### Arch / BlackArch / Manjaro
 
 ```bash
-sudo pacman -Syu
-sudo pacman -S git python python-pip
-pip install rich questionary PyYAML
+sudo pacman -Syu --noconfirm git python
 git clone https://github.com/Antech-greyhat/LinuxSetupPro.git
 cd LinuxSetupPro
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 python3 main.py
 ```
+
+Modern Kali, Parrot, Debian, Fedora, and Arch mark the system Python as
+externally managed (PEP 668), so `pip` refuses to install into it directly. The
+virtual environment above avoids that cleanly and keeps the tool's dependencies
+out of your system packages. After the first setup, reactivate it before each
+run:
+
+```bash
+cd LinuxSetupPro
+source .venv/bin/activate
+python3 main.py
+```
+
+Leave the environment at any time with `deactivate`. To install the dependencies
+system-wide without a virtual environment instead, run
+`pip install --break-system-packages -r requirements.txt` — quicker, but it can
+interfere with packages your distro manages.
 
 Python 3.8 or newer is required. Check with `python3 --version` before running.
 If your version is older, upgrade it first:
@@ -124,11 +147,13 @@ sudo pacman -Syu python
 ## Updating
 
 To update an existing clone to the latest changes or a new release, pull inside
-the project folder and reinstall dependencies in case they changed:
+the project folder and reinstall dependencies in case they changed. On Linux,
+activate the virtual environment first; on Termux, skip the `activate` line:
 
 ```bash
 cd LinuxSetupPro
 git pull
+source .venv/bin/activate
 pip install -r requirements.txt
 python3 main.py
 ```
@@ -141,6 +166,7 @@ discards local edits inside the folder:
 cd LinuxSetupPro
 git fetch origin
 git reset --hard origin/main
+source .venv/bin/activate
 python3 main.py
 ```
 
@@ -180,6 +206,12 @@ git checkout v1.0.0
 
 **What happens when a package fails to install?**
 The run continues. The package is marked `failed`, and the report records the cause and a platform-specific suggestion when the error is recognized, or the raw stderr when it is not. Reports are appended to plain-text files under `reports/` (`primary_installation.txt` and `secondary_installation.txt`); view them with any editor or run `python3 main.py --report`.
+
+**`pip` says `error: externally-managed-environment`. What do I do?**
+Kali, Parrot, and current Debian, Fedora, and Arch releases block installing packages into the system Python (PEP 668). Use the virtual environment shown in [Install on Linux](#install-on-linux): `python3 -m venv .venv && source .venv/bin/activate` before `pip install -r requirements.txt`. Remember to run `source .venv/bin/activate` again in new terminals before `python3 main.py`.
+
+**`ModuleNotFoundError: No module named 'questionary'` (or `rich`, `yaml`).**
+The dependencies did not install, usually because of the error above, or because the virtual environment is not active. Activate it (`source .venv/bin/activate`) and run `pip install -r requirements.txt` again.
 
 **How do I remove the terminal banner?**
 Run `python3 main.py --remove-banner`. It strips the marked block from your `.bashrc` or `.zshrc`. Restart your terminal afterwards.
