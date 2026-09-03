@@ -403,7 +403,11 @@ def _report_editors():
 
 
 def _editor_name(editor):
-    parts = shlex.split(editor)
+    # shlex.split raises on unbalanced quotes; fall back to a plain split so naming never crashes.
+    try:
+        parts = shlex.split(editor)
+    except ValueError:
+        parts = editor.split()
     return os.path.basename(parts[0]) if parts else editor
 
 
@@ -467,8 +471,9 @@ def main(argv=None):
         finish_run(backend, plat, console, args.dry_run, args.no_banner)
         return 0
 
-    # A modifier flag keeps the pre-menu behavior: primary, then offer secondary.
-    if args.dry_run or args.no_banner or args.verbose:
+    # Any CLI flag keeps the direct pre-menu behavior; the menu is reserved for a bare invocation.
+    raw_args = sys.argv[1:] if argv is None else argv
+    if raw_args:
         run_primary(inst, catalog, plat, console, args.dry_run, args.verbose)
         if menu.confirm("Proceed to the secondary security tools menu?", default=False):
             run_secondary(inst, catalog, plat, console)
