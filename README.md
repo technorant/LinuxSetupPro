@@ -27,6 +27,7 @@ LinuxSetupPro is a cross-platform setup and hardening tool for Termux, Debian/Ub
 | [CLI Flags](#cli-flags) | All command-line options |
 | [Supported Platforms](#supported-platforms) | Detection and backend mapping |
 | [FAQ](#faq) | Common questions and answers |
+| [Changelog](#changelog) | Version history and what changed in each release |
 | [Contributing](#contributing) | How to add packages, error patterns, and new distros |
 | [License](#license) | MIT license |
 | [Developer](#developer) | Author and social links |
@@ -44,9 +45,11 @@ LinuxSetupPro is a cross-platform setup and hardening tool for Termux, Debian/Ub
 
 ## Screenshots
 
-![Startup banner](./images/startup%20banner.jpg)
-![Startup banner detail](./images/extra%20for%20startup.jpg)
-![Progress display](./images/progress%20display.jpg)
+A live Primary Setup run on Termux — the startup banner with the developer and
+session blocks, then honest per-package progress across categories:
+
+![LinuxSetupPro startup banner and Essentials install on Termux](./images/termux-startup.jpg)
+![Primary Setup progress across Development, Security, and Fun categories on Termux](./images/termux-progress.jpg)
 
 ## Requirements
 
@@ -224,6 +227,30 @@ It works on both. Tools marked `[LOCKED]` need a proot Linux chroot or root acce
 
 **How do I add a custom package?**
 Edit `config/packages.yaml` and add an entry with its per-backend package names. No code changes are needed. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Changelog
+
+| Version | Released | Status |
+| --- | --- | --- |
+| v2.0.0 | 2026-09-03 | Latest |
+| v1.0.0 | 2026-08-05 | Initial release |
+
+### v2.0.0 (latest)
+
+- Interactive main menu on launch: choose Primary Setup, Secondary Setup, terminal banner generation, or the report viewer. Nothing installs until you pick it.
+- Secondary Setup is gated behind a completed Primary run, tracked by a `.state/primary_completed` marker, and offers to run Primary first if needed. `--only secondary` skips the check.
+- Built-in "View Last Report" submenu: open the primary report, secondary report, or both. It opens in nano by default, falls back to your configured `EDITOR`, prints the path if no editor is available, and shows per-editor exit-key hints so you are never trapped in the editor.
+- Reports are appended to plain-text files under `reports/`, readable in any editor or with `python3 main.py --report`.
+- New `--public-ip` flag shows your public IP in the startup session block instead of the local IP.
+- Fixed installs on PEP 668 systems (Kali, Parrot, and current Debian, Fedora, and Arch): the docs now use a virtual environment, with a `--break-system-packages` fallback. This resolves `externally-managed-environment` and the resulting `ModuleNotFoundError`.
+- Hardening: every CLI flag now reliably bypasses the menu so scripted and non-interactive use is unchanged, and the report viewer no longer crashes on a malformed `EDITOR` value.
+
+### v1.0.0
+
+- Initial release: cross-platform primary and secondary installer for Termux, Debian/Ubuntu, Fedora, and Arch/BlackArch.
+- Automatic platform detection and package-manager backend selection (pkg, apt, dnf, pacman).
+- Per-package progress feedback that never lets one failed package abort the run.
+- Startup and completion banners with the developer info block.
 
 ## Contributing
 
