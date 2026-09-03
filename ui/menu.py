@@ -1,40 +1,143 @@
-"""Interactive prompts: confirmations, pickers, and the secondary checkbox menu."""
+"""Interactive prompts: panels, confirmations, pickers, and the secondary checkbox menu."""
 
 import sys
+import textwrap
 
 import questionary
 from questionary import Choice
+from rich.box import ROUNDED
+from rich.markup import escape
+from rich.padding import Padding
+from rich.panel import Panel
+from rich.text import Text
 
 from ui import theme
 
 _SELECT_ALL = "__select_all__"
+
+# Wrap option hints in code so a narrow terminal (Termux portrait, ~50 cols) never truncates them.
+_HINT_WRAP = 44
+
+# Wrap prose notices a little wider than option hints, still safe on a narrow terminal.
+_NOTICE_WRAP = 58
+
+# Cyan-accented widget theme so the questionary checkboxes match the panel menus.
+_CHECKBOX_STYLE = questionary.Style([
+    ("qmark", "fg:cyan bold"),
+    ("pointer", "fg:cyan bold"),
+    ("highlighted", "fg:cyan bold"),
+    ("selected", "fg:cyan"),
+    ("answer", "fg:cyan bold"),
+])
 
 
 def _interactive():
     return sys.stdin.isatty() and sys.stdout.isatty()
 
 
-def confirm(message, default=False):
+def render_panel_menu(console, title, options, indent=0):
+    """Render a titled panel of options; options is a list of (key, label, hint) tuples.
+
+    Each option prints 'key) label', with any hint wrapped onto indented continuation
+    lines aligned under the label (a hanging indent), so long hints never overflow.
+    """
+    body = Text()
+    for i, (key, label, hint) in enumerate(options):
+        if i:
+            body.append("\n")
+        body.append(f"{key}) ", style=theme.ACCENT)
+        body.append(label, style=theme.LABEL)
+        if hint:
+            pad = " " * (len(key) + 2)
+            # Clamp to the real terminal so the panel never overflows and rich never re-wraps mid-word.
+            width = max(20, min(_HINT_WRAP, console.width - indent - 6))
+            wrapped = textwrap.fill(hint, width=width, initial_indent=pad, subsequent_indent=pad)
+            body.append("\n")
+            body.append(wrapped, style=theme.HINT)
+    panel = Panel(body, box=ROUNDED, border_style=theme.ACCENT, title=title,
+                  title_align="left", padding=(0, 2), expand=False)
+    console.print(Padding(panel, (0, 0, 0, indent)) if indent else panel)
+
+
+def notice(console, message, title=None, border_style=theme.WARN):
+    """Render a prose message inside a panel matching the menu styling."""
+    width = max(20, min(_NOTICE_WRAP, console.width - 6))
+    wrapped = "\n".join(textwrap.fill(line, width=width) for line in message.splitlines())
+    panel = Panel(Text(wrapped), box=ROUNDED, border_style=border_style, title=title,
+                  title_align="left", padding=(0, 2), expand=False)
+    console.print(panel)
+
+
+def _prompt(console, message):
+    """Themed input caret. Returns the raw string, or None if the user cancels."""
+    try:
+        return console.input(f"[{theme.PROMPT}]{escape(message)}[/]")
+    except (EOFError, KeyboardInterrupt):
+        console.print()
+        return None
+
+
+def _read_choice(console, prompt, valid):
+    """Prompt until the user enters one of valid (case-insensitive), or None on cancel."""
+    if not _interactive():
+        return None
+    while True:
+        answer = _prompt(console, prompt)
+        if answer is None:
+            return None
+        answer = answer.strip().lower()
+        if answer in valid:
+            return answer
+        console.print("  Please enter one of: " + ", ".join(sorted(valid)), style=theme.HINT)
+
+
+def confirm(console, message, default=False):
+    """Themed yes/no prompt. Returns default when non-interactive or on cancel."""
     if not _interactive():
         return default
-    answer = questionary.confirm(message, default=default).ask()
-    return bool(answer)
+    suffix = "[Y/n]" if default else "[y/n]"
+    while True:
+        answer = _prompt(console, f"{message} {suffix} ")
+        if answer is None:
+            return default
+        answer = answer.strip().lower()
+        if not answer:
+            return default
+        if answer in ("y", "yes"):
+            return True
+        if answer in ("n", "no"):
+            return False
+        console.print("  Please answer y or n.", style=theme.HINT)
 
 
-def text(message, default=""):
+def text(console, message, default=""):
+    """Themed free-text prompt. Returns default when empty, cancelled, or non-interactive."""
     if not _interactive():
         return default
-    answer = questionary.text(message, default=default).ask()
-    return answer if answer is not None else default
+    answer = _prompt(console, f"{message} ")
+    if answer is None:
+        return default
+    answer = answer.strip()
+    return answer if answer else default
 
 
-def select(message, options, default=None):
-    """Single-select. options is a list of (value, label) tuples."""
+def select(console, message, options, default=None):
+    """Single-select rendered as a numbered panel; options is a list of (value, label) tuples.
+
+    A label may carry a ' - ' separated hint, shown dimmed under the option like the menus.
+    """
+    fallback = default if default is not None else options[0][0]
     if not _interactive():
-        return default if default is not None else options[0][0]
-    choices = [Choice(title=label, value=value) for value, label in options]
-    answer = questionary.select(message, choices=choices).ask()
-    return answer if answer is not None else (default if default is not None else options[0][0])
+        return fallback
+    rows = []
+    for i, (_, label) in enumerate(options, start=1):
+        name, _, hint = label.partition(" - ")
+        rows.append((str(i), name, hint))
+    render_panel_menu(console, message, rows)
+    choice = _read_choice(console, "  > ", {str(i) for i in range(1, len(options) + 1)})
+    if choice is None:
+        return fallback
+    return options[int(choice) - 1][0]
 
 
 def editor_multiselect(entries):
@@ -48,7 +151,7 @@ def editor_multiselect(entries):
             label = f"{entry['name']} {theme.MARKER_LOCKED}"
         choices.append(Choice(title=f"{label} - {entry.get('description', '')}", value=entry["name"]))
     selected = questionary.checkbox("Select editors to install (space to toggle, enter to confirm):",
-                                    choices=choices).ask()
+                                    choices=choices, style=_CHECKBOX_STYLE).ask()
     return selected or []
 
 
@@ -65,7 +168,7 @@ def secondary_menu(entries):
 
     selected = questionary.checkbox(
         "Select security tools to install (space to toggle, enter to confirm):",
-        choices=choices,
+        choices=choices, style=_CHECKBOX_STYLE,
     ).ask()
     selected = selected or []
     if _SELECT_ALL in selected:
@@ -73,19 +176,21 @@ def secondary_menu(entries):
     return selected
 
 
-def _read_choice(prompt, valid):
-    """Prompt until the user enters one of valid (case-insensitive), or None on cancel."""
-    if not _interactive():
-        return None
-    while True:
-        try:
-            answer = input(prompt).strip().lower()
-        except (EOFError, KeyboardInterrupt):
-            print()
-            return None
-        if answer in valid:
-            return answer
-        print("  Please enter one of: " + ", ".join(sorted(valid)))
+# Main menu options: (key, label, hint). Hints wrap in the panel, never overflow.
+_MAIN_OPTIONS = [
+    ("1", "Run Primary Setup", "Basic / required — install this first"),
+    ("2", "Run Secondary Setup", "Advanced / security tools — requires Primary"),
+    ("3", "Generate Terminal Banner", "Installs figlet / lolcat if needed"),
+    ("4", "View Last Report", ""),
+    ("5", "Exit", ""),
+]
+
+_REPORT_OPTIONS = [
+    ("4a", "Primary Report", ""),
+    ("4b", "Secondary Report", ""),
+    ("4c", "Both Reports", ""),
+    ("4d", "Back to Main Menu", ""),
+]
 
 
 def main_menu(console):
@@ -93,25 +198,14 @@ def main_menu(console):
     if not _interactive():
         return None
     console.print()
-    console.print("LinuxSetupPro — Main Menu", style=theme.HEADING)
-    console.print()
-    console.print("  1) Run Primary Setup        (Basic / Required — install this first)", highlight=False)
-    console.print("  2) Run Secondary Setup      (Advanced/Security Tools — requires Primary)", highlight=False)
-    console.print("  3) Generate Terminal Banner (Installs figlet/lolcat if needed)", highlight=False)
-    console.print("  4) View Last Report", highlight=False)
-    console.print("  5) Exit", highlight=False)
-    console.print()
-    return _read_choice("  > ", {"1", "2", "3", "4", "5"})
+    render_panel_menu(console, "LinuxSetupPro - Main Menu", _MAIN_OPTIONS)
+    return _read_choice(console, "  > ", {"1", "2", "3", "4", "5"})
 
 
 def report_menu(console):
-    """Render the View Last Report submenu and return the chosen option, or None to go back."""
+    """Render the View Last Report submenu (nested under the main menu), or None to go back."""
     if not _interactive():
         return None
     console.print()
-    console.print("     4a) Primary Report", highlight=False)
-    console.print("     4b) Secondary Report", highlight=False)
-    console.print("     4c) Both Reports", highlight=False)
-    console.print("     4d) Back to Main Menu", highlight=False)
-    console.print()
-    return _read_choice("     > ", {"4a", "4b", "4c", "4d"})
+    render_panel_menu(console, "View Last Report", _REPORT_OPTIONS, indent=5)
+    return _read_choice(console, "     > ", {"4a", "4b", "4c", "4d"})

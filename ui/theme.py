@@ -23,8 +23,13 @@ MARKER_FAIL = "[FAIL]"
 MARKER_SKIP = "[SKIP]"
 MARKER_LOCKED = "[LOCKED]"
 
-BRAND = "bold cyan"
-ACCENT = "magenta"
+# Named roles so menus and prompts share one palette instead of hardcoding colors.
+BRAND = "bold cyan"     # startup logo and session panel border
+ACCENT = "cyan"         # menu panel borders and option keys; matches the banner's cyan
+DEV = "magenta"         # developer, support, and completion panels in banner.py
+LABEL = "bold white"    # option labels and field names
+HINT = "dim"            # dimmed parenthetical hint under an option
+PROMPT = ACCENT         # input caret and typed text; matches ACCENT
 DIM = "dim"
 HEADING = "bold white"
 WARN = "yellow"

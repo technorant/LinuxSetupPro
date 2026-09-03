@@ -115,6 +115,7 @@ def customization_flow(inst, catalog, plat, console, dry_run):
             entries.append(e)
 
     theme_choice = menu.select(
+        console,
         "Choose a shell prompt theme:",
         [("starship", "starship - lightweight, fast, no shell switch required"),
          ("oh-my-zsh", "oh-my-zsh - heavier, popular, requires switching to zsh")],
@@ -126,7 +127,7 @@ def customization_flow(inst, catalog, plat, console, dry_run):
     elif theme_choice == "oh-my-zsh" and "zsh" in shells:
         entries.append(_shell_entry("zsh", shells["zsh"]))
 
-    want_fish = menu.confirm("Install the fish shell as an optional extra?", default=False)
+    want_fish = menu.confirm(console, "Install the fish shell as an optional extra?", default=False)
     if want_fish and "fish" in shells:
         entries.append(_shell_entry("fish", shells["fish"]))
 
@@ -134,7 +135,7 @@ def customization_flow(inst, catalog, plat, console, dry_run):
 
     if theme_choice == "oh-my-zsh":
         records.append(_install_oh_my_zsh(console, dry_run))
-        if not dry_run and menu.confirm("Switch default shell to zsh?", default=False):
+        if not dry_run and menu.confirm(console, "Switch default shell to zsh?", default=False):
             _switch_shell_to_zsh(console)
 
     default_editor = _choose_default_editor(selected)
@@ -204,8 +205,10 @@ def _switch_shell_to_zsh(console):
 
 def run_secondary(inst, catalog, plat, console):
     console.print()
-    console.print("Secondary tools marked [LOCKED] require a proot Linux chroot or root access "
-                  "and may not fully function on stock or unrooted devices.", style=theme.WARN)
+    menu.notice(console,
+                "Secondary tools marked [LOCKED] require a proot Linux chroot or root access "
+                "and may not fully function on stock or unrooted devices.",
+                title="[ HEADS UP ]", border_style=theme.WARN)
 
     entries = []
     for block in catalog.get("secondary", []):
@@ -221,8 +224,9 @@ def run_secondary(inst, catalog, plat, console):
 
     chosen = [e for e in entries if e["name"] in selected]
     console.print()
-    console.print("You are about to install: " + ", ".join(e["name"] for e in chosen), style=theme.HEADING)
-    if not menu.confirm("Proceed with installation?", default=False):
+    menu.notice(console, "You are about to install: " + ", ".join(e["name"] for e in chosen),
+                title="[ CONFIRM ]", border_style=theme.ACCENT)
+    if not menu.confirm(console, "Proceed with installation?", default=False):
         console.print("Cancelled.", style=theme.DIM)
         return []
 
@@ -236,19 +240,19 @@ def run_secondary(inst, catalog, plat, console):
 
 
 def banner_generation_flow(backend, plat, console, dry_run):
-    if not menu.confirm("Generate a persistent terminal banner?", default=False):
+    if not menu.confirm(console, "Generate a persistent terminal banner?", default=False):
         return
     generator = BannerGenerator(backend, console)
     if not dry_run:
         generator.ensure_tools()
 
-    name = menu.text("Name to display:", default="hacker")
-    handle = menu.text("Handle or tagline (optional):", default="")
+    name = menu.text(console, "Name to display:", default="hacker")
+    handle = menu.text(console, "Handle or tagline (optional):", default="")
     text_value = f"{name} {handle}".strip() if handle else name
 
-    if menu.confirm("Customize font and color scheme?", default=False):
-        font = menu.select("Font:", [(f, f) for f in FONTS], default=FONTS[0])
-        scheme = menu.select("Color scheme:", [(c, c) for c in COLOR_SCHEMES], default=COLOR_SCHEMES[0])
+    if menu.confirm(console, "Customize font and color scheme?", default=False):
+        font = menu.select(console, "Font:", [(f, f) for f in FONTS], default=FONTS[0])
+        scheme = menu.select(console, "Color scheme:", [(c, c) for c in COLOR_SCHEMES], default=COLOR_SCHEMES[0])
     else:
         font, scheme = default_settings()
 
@@ -258,7 +262,7 @@ def banner_generation_flow(backend, plat, console, dry_run):
         return
 
     command = generator.render_preview(text_value, font, scheme)
-    if command and menu.confirm("Add this banner to your shell startup?", default=True):
+    if command and menu.confirm(console, "Add this banner to your shell startup?", default=True):
         path = generator.persist(command)
         console.print(f"Banner added to {path}. It appears on your next shell start.", style=theme.DIM)
 
@@ -337,7 +341,7 @@ def _menu_secondary(inst, catalog, plat, console, dry_run, end_shown):
     """Run Secondary from the menu, gated behind a completed Primary run."""
     if not state.primary_completed():
         console.print("Secondary Setup requires Primary Setup to be run first.", style=theme.WARN)
-        if not menu.confirm("Run Primary Setup now?", default=False):
+        if not menu.confirm(console, "Run Primary Setup now?", default=False):
             return end_shown
         run_primary(inst, catalog, plat, console, dry_run, inst.verbose)
     run_secondary(inst, catalog, plat, console)
@@ -440,12 +444,11 @@ def main(argv=None):
         action_remove_banner(console)
         return 0
 
-    if not args.no_banner:
-        banner.show_startup(VERSION, console, public_ip=args.public_ip)
-
     plat = resolve_platform(console)
     check_python_version(plat, console)
-    console.print(f"Detected platform: {plat.pretty_name} (backend: {plat.backend_key})", style=theme.DIM)
+
+    if not args.no_banner:
+        banner.show_startup(VERSION, console, plat, public_ip=args.public_ip)
 
     backend = get_backend(plat.backend_key, dry_run=args.dry_run)
     if backend is None:
@@ -475,7 +478,7 @@ def main(argv=None):
     raw_args = sys.argv[1:] if argv is None else argv
     if raw_args:
         run_primary(inst, catalog, plat, console, args.dry_run, args.verbose)
-        if menu.confirm("Proceed to the secondary security tools menu?", default=False):
+        if menu.confirm(console, "Proceed to the secondary security tools menu?", default=False):
             run_secondary(inst, catalog, plat, console)
         finish_run(backend, plat, console, args.dry_run, args.no_banner)
         return 0

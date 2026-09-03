@@ -14,7 +14,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from core import detector
-from ui import theme
+from ui import menu, theme
 
 # Generated with figlet (small font); embedded to avoid a runtime dependency.
 _LOGO = r"""
@@ -88,49 +88,50 @@ def _public_ip():
         return "unavailable"
 
 
-def _session_rows(public_ip=False):
+def _session_rows(platform_info, public_ip=False):
     now = datetime.now()
     ip = _public_ip() if public_ip else _local_ip()
+    if platform_info is not None:
+        platform_desc = f"{platform_info.pretty_name} (backend: {platform_info.backend_key})"
+    else:
+        platform_desc = "unknown"
     return [
         ("USER", getpass.getuser()),
         ("HOST", socket.gethostname()),
+        ("PLATFORM", platform_desc),
         ("IP", ip),
         ("DATE", now.strftime("%d %B %Y")),
         ("TIME", now.strftime("%H:%M")),
     ]
 
 
-def show_startup(version, console=None, public_ip=False):
+def show_startup(version, console=None, platform_info=None, public_ip=False):
     console = console or Console()
     console.print()
     console.print(_logo_panel(_LOGO, f"v{version}  cross-platform setup and hardening",
                               "[ BUILT BY ANTECH ]", theme.BRAND))
-    console.print(_info_panel(_DEV, "[ DEVELOPER ]", theme.ACCENT))
-    console.print(_info_panel(_session_rows(public_ip), "[ SESSION ]", theme.BRAND, value_style="green"))
+    console.print(_info_panel(_DEV, "[ DEVELOPER ]", theme.DEV))
+    console.print(_info_panel(_session_rows(platform_info, public_ip), "[ SESSION ]",
+                              theme.BRAND, value_style="green"))
     console.print(Text("If this tool saves you time, a star on GitHub is appreciated.", style=theme.DIM))
     console.print()
 
 
-def show_end(version, platform_info, console=None, ask_open=True, input_fn=input):
+def show_end(version, platform_info, console=None, ask_open=True):
     console = console or Console()
     console.print()
     console.print(_logo_panel(_LOGO_DONE, f"LinuxSetupPro v{version}  setup finished",
-                              "[ COMPLETE ]", theme.ACCENT))
+                              "[ COMPLETE ]", theme.DEV))
     console.print(_info_panel(
         [("AUTHOR", "Antech"),
          ("GITHUB", "https://github.com/Antech-greyhat"),
          ("TELEGRAM", "https://t.me/AntechDevSecOps")],
-        "[ SUPPORT DEVELOPMENT ]", theme.ACCENT))
+        "[ SUPPORT DEVELOPMENT ]", theme.DEV))
     console.print()
 
     if not ask_open:
         return
-    try:
-        answer = input_fn("Open GitHub in browser now? [y/n] ").strip().lower()
-    except (EOFError, KeyboardInterrupt):
-        console.print()
-        return
-    if answer in ("y", "yes"):
+    if menu.confirm(console, "Open GitHub in browser now?", default=False):
         _open_url("https://github.com/Antech-greyhat", platform_info)
 
 
