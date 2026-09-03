@@ -125,7 +125,11 @@ def show_end(version, platform_info, console=None, ask_open=True, input_fn=input
 
     if not ask_open:
         return
-    answer = input_fn("Open GitHub in browser now? [y/n] ").strip().lower()
+    try:
+        answer = input_fn("Open GitHub in browser now? [y/n] ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        console.print()
+        return
     if answer in ("y", "yes"):
         _open_url("https://github.com/Antech-greyhat", platform_info)
 
