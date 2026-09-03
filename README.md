@@ -33,6 +33,7 @@ LinuxSetupPro is a cross-platform setup and hardening tool for Termux, Debian/Ub
 
 ## Features
 
+- Launches into an interactive main menu: run Primary Setup, run Secondary Setup, generate a terminal banner, or view the last report. Nothing installs until you choose it.
 - Primary categories installed in order: Essentials, Development, Security/Networking, Fun/Terminal Flair, and an interactive Customization step.
 - Opt-in secondary menu of OSINT, network analysis, web-app testing, password-auth, wireless, exploitation, and forensics tools.
 - Real progress feedback per package, alternating a progress bar and a spinner, with a distinct color per status.
@@ -192,6 +193,8 @@ git checkout v1.0.0
 | `--verbose` | Show raw subprocess output instead of the progress widgets. |
 | `--remove-banner` | Remove the persistent shell banner block and exit. |
 | `--public-ip` | Show your public IP in the startup session block. Makes one outbound request; the default shows the local IP only. |
+
+Running `python3 main.py` with no flags opens the interactive main menu, where you choose Primary Setup, Secondary Setup, banner generation, or the report viewer. Any flag in the table above runs its action directly and bypasses the menu, so scripted and non-interactive use is unchanged. Secondary Setup from the menu requires Primary Setup to have completed at least once and offers to run it first if needed; `--only secondary` skips that check.
 
 ## Supported Platforms
 

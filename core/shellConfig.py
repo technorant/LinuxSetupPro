@@ -105,5 +105,19 @@ def set_editor(editor, shell=None):
     return path
 
 
+def get_editor(shell=None):
+    """Return the EDITOR value from our editor block, or None if it was never set."""
+    inside = False
+    for line in _read_lines(rc_path_for_shell(shell)):
+        stripped = line.strip()
+        if stripped == EDITOR_BEGIN:
+            inside = True
+        elif stripped == EDITOR_END:
+            inside = False
+        elif inside and stripped.startswith("export EDITOR="):
+            return stripped[len("export EDITOR="):].strip().strip('"').strip("'") or None
+    return None
+
+
 def has_p10k(shell=None):
     return _p10k_end_index(_read_lines(rc_path_for_shell(shell))) is not None

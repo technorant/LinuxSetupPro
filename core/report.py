@@ -163,6 +163,11 @@ class Report:
         return " | ".join(parts) if parts else "nothing to do"
 
 
+def report_path(kind):
+    """Absolute path of a report file by kind ('primary' or 'secondary'), existent or not."""
+    return os.path.join(_REPORT_DIR, _FILENAMES[kind])
+
+
 def read_reports():
     """Return the combined text of the saved report files, or None if none exist."""
     chunks = []

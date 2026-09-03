@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -9,7 +10,7 @@ import time
 
 from rich.console import Console
 
-from core import detector, installer, report, shellConfig
+from core import detector, installer, report, shellConfig, state
 from core.bannerGenerator import BannerGenerator, FONTS, COLOR_SCHEMES, default_settings
 from core.errorClassifier import ErrorClassifier
 from core.packageManager import get_backend, OperationResult, INSTALLED, FAILED, SKIPPED
@@ -92,6 +93,8 @@ def run_primary(inst, catalog, plat, console, dry_run, verbose):
     elapsed = time.monotonic() - started
     rpt = Report("primary", plat.pretty_name, plat.backend_key)
     rpt.write(records, elapsed, notes)
+    if not dry_run:
+        state.mark_primary_completed()
     return records
 
 
@@ -296,6 +299,131 @@ def action_set_editor(catalog, console, dry_run):
     console.print(f"EDITOR set to {editor} in {path}. Restart your terminal to apply.", style=theme.DIM)
 
 
+def finish_run(backend, plat, console, dry_run, no_banner):
+    """Offer banner generation, then show the end banner. Shared by the flag paths."""
+    banner_generation_flow(backend, plat, console, dry_run)
+    if not no_banner:
+        banner.show_end(VERSION, plat, console)
+
+
+def run_menu(inst, catalog, plat, console, backend, dry_run):
+    """Interactive main menu shown for a bare invocation. Returns an exit code."""
+    end_shown = False
+    while True:
+        choice = menu.main_menu(console)
+        if choice == "1":
+            run_primary(inst, catalog, plat, console, dry_run, inst.verbose)
+            end_shown = _show_end_once(plat, console, end_shown)
+        elif choice == "2":
+            end_shown = _menu_secondary(inst, catalog, plat, console, dry_run, end_shown)
+        elif choice == "3":
+            banner_generation_flow(backend, plat, console, dry_run)
+        elif choice == "4":
+            report_submenu(console)
+        else:  # "5" or a cancelled prompt
+            if not end_shown:
+                banner.show_end(VERSION, plat, console)
+            return 0
+
+
+def _show_end_once(plat, console, end_shown):
+    """Show the end banner only if it has not fired yet this session."""
+    if not end_shown:
+        banner.show_end(VERSION, plat, console)
+    return True
+
+
+def _menu_secondary(inst, catalog, plat, console, dry_run, end_shown):
+    """Run Secondary from the menu, gated behind a completed Primary run."""
+    if not state.primary_completed():
+        console.print("Secondary Setup requires Primary Setup to be run first.", style=theme.WARN)
+        if not menu.confirm("Run Primary Setup now?", default=False):
+            return end_shown
+        run_primary(inst, catalog, plat, console, dry_run, inst.verbose)
+    run_secondary(inst, catalog, plat, console)
+    return _show_end_once(plat, console, end_shown)
+
+
+def report_submenu(console):
+    """Nested View Last Report menu; each report opens independently."""
+    while True:
+        choice = menu.report_menu(console)
+        if choice == "4a":
+            open_report(console, "primary")
+        elif choice == "4b":
+            open_report(console, "secondary")
+        elif choice == "4c":
+            open_report(console, "primary")
+            open_report(console, "secondary")
+        else:  # "4d" or a cancelled prompt
+            return
+
+
+# Exit-key hints shown before an editor launches so users are never trapped in it.
+_EDITOR_HINTS = {
+    "nano": "To exit nano: press Ctrl+X, then Y to save (or N to discard), then Enter.",
+    "vim": "To exit vim: press Esc, type :wq, then Enter (or :q! to discard).",
+    "vi": "To exit vi: press Esc, type :wq, then Enter (or :q! to discard).",
+    "nvim": "To exit neovim: press Esc, type :wq, then Enter (or :q! to discard).",
+    "micro": "To exit micro: press Ctrl+Q (press Ctrl+S first to save).",
+    "emacs": "To exit emacs: press Ctrl+X then Ctrl+C (it will prompt to save).",
+}
+_EDITOR_HINT_DEFAULT = "Save and close the editor to return to the menu."
+
+
+def open_report(console, kind):
+    """Open a saved report in nano, falling back to the configured editor, then to a printed path."""
+    path = report.report_path(kind)
+    if not os.path.isfile(path):
+        console.print(f"No {kind} report found yet — run {kind.capitalize()} Setup first.",
+                      style=theme.WARN)
+        return
+
+    filename = os.path.basename(path)
+    for editor in _report_editors():
+        console.print(f"Opening {filename} in {_editor_name(editor)}...", style=theme.DIM)
+        console.print(_editor_hint(editor), style=theme.DIM)
+        if _launch_editor(editor, path):
+            return
+        console.print(f"Could not open {_editor_name(editor)}.", style=theme.WARN)
+
+    console.print("No usable editor found. Open this file manually:", style=theme.WARN)
+    console.print(os.path.abspath(path))
+
+
+def _report_editors():
+    """Editors to try, nano first, then the one set in Customization or the $EDITOR env var."""
+    editors = []
+    if shutil.which("nano"):
+        editors.append("nano")
+    configured = shellConfig.get_editor() or os.environ.get("EDITOR")
+    if configured and _editor_name(configured) != "nano":
+        editors.append(configured)
+    return editors
+
+
+def _editor_name(editor):
+    # shlex.split raises on unbalanced quotes; fall back to a plain split so naming never crashes.
+    try:
+        parts = shlex.split(editor)
+    except ValueError:
+        parts = editor.split()
+    return os.path.basename(parts[0]) if parts else editor
+
+
+def _editor_hint(editor):
+    return _EDITOR_HINTS.get(_editor_name(editor), _EDITOR_HINT_DEFAULT)
+
+
+def _launch_editor(editor, path):
+    """Run an interactive editor on path. Returns True if it launched, False if it could not."""
+    try:
+        subprocess.run(shlex.split(editor) + [path], check=False)
+        return True
+    except (OSError, ValueError):
+        return False
+
+
 def main(argv=None):
     args = build_parser().parse_args(argv)
     console = Console()
@@ -335,26 +463,25 @@ def main(argv=None):
 
     if args.only == "secondary":
         run_secondary(inst, catalog, plat, console)
-        banner_generation_flow(backend, plat, console, args.dry_run)
-        if not args.no_banner:
-            banner.show_end(VERSION, plat, console)
+        finish_run(backend, plat, console, args.dry_run, args.no_banner)
         return 0
-
-    run_primary(inst, catalog, plat, console, args.dry_run, args.verbose)
 
     if args.only == "primary":
-        banner_generation_flow(backend, plat, console, args.dry_run)
-        if not args.no_banner:
-            banner.show_end(VERSION, plat, console)
+        run_primary(inst, catalog, plat, console, args.dry_run, args.verbose)
+        finish_run(backend, plat, console, args.dry_run, args.no_banner)
         return 0
 
-    if menu.confirm("Proceed to the secondary security tools menu?", default=False):
-        run_secondary(inst, catalog, plat, console)
+    # Any CLI flag keeps the direct pre-menu behavior; the menu is reserved for a bare invocation.
+    raw_args = sys.argv[1:] if argv is None else argv
+    if raw_args:
+        run_primary(inst, catalog, plat, console, args.dry_run, args.verbose)
+        if menu.confirm("Proceed to the secondary security tools menu?", default=False):
+            run_secondary(inst, catalog, plat, console)
+        finish_run(backend, plat, console, args.dry_run, args.no_banner)
+        return 0
 
-    banner_generation_flow(backend, plat, console, args.dry_run)
-    if not args.no_banner:
-        banner.show_end(VERSION, plat, console)
-    return 0
+    # Bare invocation: the interactive main menu.
+    return run_menu(inst, catalog, plat, console, backend, args.dry_run)
 
 
 if __name__ == "__main__":
