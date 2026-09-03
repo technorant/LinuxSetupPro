@@ -45,11 +45,30 @@ LinuxSetupPro is a cross-platform setup and hardening tool for Termux, Debian/Ub
 
 ## Screenshots
 
-A live Primary Setup run on Termux — the startup banner with the developer and
-session blocks, then honest per-package progress across categories:
+A live run on Termux, from the interactive menu through a finished setup.
 
-![LinuxSetupPro startup banner and Essentials install on Termux](./images/termux-startup.jpg)
-![Primary Setup progress across Development, Security, and Fun categories on Termux](./images/termux-progress.jpg)
+<table>
+  <tr>
+    <td align="center" width="33%" valign="top">
+      <img src="./images/termux-menu.jpg" alt="Interactive main menu on Termux" /><br />
+      <sub><b>Interactive main menu</b><br />Nothing installs until you choose it.</sub>
+    </td>
+    <td align="center" width="33%" valign="top">
+      <img src="./images/termux-startup.jpg" alt="Startup banner and Essentials install on Termux" /><br />
+      <sub><b>Primary Setup</b><br />Startup banner, then per-package progress.</sub>
+    </td>
+    <td align="center" width="33%" valign="top">
+      <img src="./images/termux-progress.jpg" alt="Install progress across categories on Termux" /><br />
+      <sub><b>Honest reporting</b><br />Every package's status, including failures.</sub>
+    </td>
+  </tr>
+</table>
+
+When a run finishes, LinuxSetupPro shows a completion banner:
+
+<p align="center">
+  <img src="./images/termux-complete.jpg" alt="Completion banner on Termux" width="70%" />
+</p>
 
 ## Requirements
 
@@ -179,7 +198,7 @@ To move to a specific tagged release instead of the latest commit:
 ```bash
 cd LinuxSetupPro
 git fetch --tags
-git checkout v1.0.0
+git checkout v2.0.0
 ```
 
 ## CLI Flags
