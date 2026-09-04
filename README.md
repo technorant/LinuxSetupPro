@@ -45,19 +45,25 @@ LinuxSetupPro is a cross-platform setup and hardening tool for Termux, Debian/Ub
 
 ## Screenshots
 
-A live run on Termux, from the interactive menu through a finished setup.
+A live run on Termux — from the fully panelled interactive menu through a finished setup.
 
 <table>
   <tr>
-    <td align="center" width="33%" valign="top">
+    <td align="center" width="50%" valign="top">
       <img src="./images/termux-menu.jpg" alt="Interactive main menu on Termux" /><br />
-      <sub><b>Interactive main menu</b><br />Nothing installs until you choose it.</sub>
+      <sub><b>Interactive main menu</b><br />Startup, session, and menu share one panel style. Nothing installs until you choose it.</sub>
     </td>
-    <td align="center" width="33%" valign="top">
+    <td align="center" width="50%" valign="top">
+      <img src="./images/termux-report-menu.jpg" alt="Styled prompts and the View Last Report submenu on Termux" /><br />
+      <sub><b>Consistent panels everywhere</b><br />Every prompt and nested submenu matches the banner styling.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%" valign="top">
       <img src="./images/termux-startup.jpg" alt="Startup banner and Essentials install on Termux" /><br />
       <sub><b>Primary Setup</b><br />Startup banner, then per-package progress.</sub>
     </td>
-    <td align="center" width="33%" valign="top">
+    <td align="center" width="50%" valign="top">
       <img src="./images/termux-progress.jpg" alt="Install progress across categories on Termux" /><br />
       <sub><b>Honest reporting</b><br />Every package's status, including failures.</sub>
     </td>
