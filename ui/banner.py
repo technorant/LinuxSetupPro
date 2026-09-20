@@ -13,7 +13,7 @@ from rich.console import Console, Group
 from rich.panel import Panel
 from rich.text import Text
 
-from core import detector
+from core import detector, updateCheck
 from ui import menu, theme
 
 # Generated with figlet (small font); embedded to avoid a runtime dependency.
@@ -113,6 +113,9 @@ def show_startup(version, console=None, platform_info=None, public_ip=False):
     console.print(_info_panel(_DEV, "[ DEVELOPER ]", theme.DEV))
     console.print(_info_panel(_session_rows(platform_info, public_ip), "[ SESSION ]",
                               theme.BRAND, value_style="green"))
+    notice = updateCheck.startup_notice(version)
+    if notice:
+        menu.notice(console, notice, title="[ UPDATE ]", border_style=theme.ACCENT)
     console.print(Text("If this tool saves you time, a star on GitHub is appreciated.", style=theme.DIM))
     console.print()
 
