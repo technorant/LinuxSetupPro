@@ -231,7 +231,9 @@ _MAIN_OPTIONS = [
     ("3", "Generate Terminal Banner", "Installs figlet / lolcat if needed"),
     ("4", "View Last Report", ""),
     ("5", "Uninstall Packages", "Remove tools this installer added"),
-    ("6", "Exit", ""),
+    ("6", "Check for Updates", "Look for a newer release on GitHub"),
+    ("7", "Run Health Check", "Verify tracked packages are still installed"),
+    ("8", "Exit", ""),
 ]
 
 _REPORT_OPTIONS = [
@@ -248,7 +250,7 @@ def main_menu(console):
         return None
     console.print()
     render_panel_menu(console, "LinuxSetupPro - Main Menu", _MAIN_OPTIONS)
-    return _read_choice(console, "  > ", {"1", "2", "3", "4", "5", "6"})
+    return _read_choice(console, "  > ", {"1", "2", "3", "4", "5", "6", "7", "8"})
 
 
 def report_menu(console):

@@ -11,7 +11,7 @@ from collections import namedtuple
 
 from rich.console import Console
 
-from core import detector, installer, report, shellConfig, state
+from core import detector, doctor, installer, report, shellConfig, state, updateCheck
 from core.bannerGenerator import BannerGenerator, FONTS, COLOR_SCHEMES, default_settings
 from core.errorClassifier import ErrorClassifier
 from core.packageManager import (
@@ -54,6 +54,10 @@ def build_parser():
                         help="reopen the editor picker, update EDITOR, then exit")
     parser.add_argument("--report", action="store_true",
                         help="print the saved installation reports and exit")
+    parser.add_argument("--check-update", action="store_true",
+                        help="check GitHub for a newer release, print the result, and exit")
+    parser.add_argument("--doctor", action="store_true",
+                        help="health-check tracked packages against the system, then exit")
     parser.add_argument("--version", action="store_true", help="print the version and exit")
     parser.add_argument("--no-banner", action="store_true",
                         help="suppress the startup and end-of-run banners")
@@ -441,6 +445,39 @@ def action_report(console):
     console.print(content, markup=False, highlight=False)
 
 
+def action_check_update(console):
+    """Query GitHub for a newer release and report the outcome in a panel. Never crashes on network failure."""
+    result = updateCheck.check_for_update(VERSION)
+    if result.status == updateCheck.UPDATE_AVAILABLE:
+        menu.notice(console,
+                    f"A newer version ({result.latest}) is available.\n"
+                    f"You are currently on v{result.current}.\n\n"
+                    "This tool never auto-updates, so your local changes and "
+                    "customizations stay intact. Open the release page below to review "
+                    "the changes and download it.",
+                    title="[ UPDATE AVAILABLE ]", border_style=theme.ACCENT)
+        console.print(result.url or updateCheck.RELEASES_PAGE, style=theme.ACCENT)
+    elif result.status == updateCheck.UP_TO_DATE:
+        menu.notice(console, f"You are on the latest version (v{result.current}).",
+                    title="[ UP TO DATE ]", border_style=theme.ACCENT)
+    else:
+        menu.notice(console,
+                    "Could not check for updates — the network may be unreachable. "
+                    "Nothing else is affected; try again later.",
+                    title="[ UPDATE CHECK FAILED ]", border_style=theme.WARN)
+
+
+def action_doctor(backend, plat, console):
+    """Audit tracked tool-installed packages, write the health report, and print a short summary."""
+    result = doctor.run_health_check(backend, plat.backend_key)
+    path = report.write_health_report(result.checked, result.discrepancies)
+    summary = report.health_summary_line(len(result.checked), len(result.discrepancies))
+    console.print()
+    menu.notice(console, summary, title="[ HEALTH CHECK ]",
+                border_style=theme.WARN if result.discrepancies else theme.ACCENT)
+    console.print(f"Full report: {os.path.relpath(path)}", style=theme.DIM)
+
+
 def action_remove_banner(console):
     removed_any = False
     for shell in ("bash", "zsh"):
@@ -491,7 +528,11 @@ def run_menu(inst, catalog, plat, console, backend, dry_run):
             report_submenu(console)
         elif choice == "5":
             run_uninstall(inst, plat, console)
-        else:  # "6" or a cancelled prompt
+        elif choice == "6":
+            action_check_update(console)
+        elif choice == "7":
+            action_doctor(backend, plat, console)
+        else:  # "8" or a cancelled prompt
             if not end_shown:
                 banner.show_end(VERSION, plat, console)
             return 0
@@ -607,6 +648,10 @@ def main(argv=None):
         action_report(console)
         return 0
 
+    if args.check_update:
+        action_check_update(console)
+        return 0
+
     if args.remove_banner:
         action_remove_banner(console)
         return 0
@@ -621,6 +666,10 @@ def main(argv=None):
     if backend is None:
         console.print("No package backend available for this platform.", style=theme.ERROR)
         return 1
+
+    if args.doctor:
+        action_doctor(backend, plat, console)
+        return 0
 
     catalog = installer.load_catalog()
 

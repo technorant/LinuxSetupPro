@@ -21,6 +21,7 @@ _FILENAMES = {
     "primary": "primary_installation.txt",
     "secondary": "secondary_installation.txt",
     "uninstall": "uninstall.txt",
+    "health": "health_check.txt",
 }
 
 # Banner title per report kind; keeps the established install wording untouched.
@@ -28,6 +29,7 @@ _REPORT_TITLES = {
     "primary": "PRIMARY INSTALLATION REPORT",
     "secondary": "SECONDARY INSTALLATION REPORT",
     "uninstall": "UNINSTALL REPORT",
+    "health": "HEALTH CHECK REPORT",
 }
 
 # Title-cased labels used in the Status column.
@@ -68,6 +70,10 @@ _GAP = "  "
 _WIDTH = 60
 _DESC_DASHES = 26
 
+# The health check's own two outcomes, shown in its Status column.
+_HEALTH_OK = "OK"
+_HEALTH_MISSING = "MISSING"
+
 
 class PackageRecord:
     """One package's outcome, carrying enough detail to render its report row."""
@@ -93,6 +99,24 @@ def _ensure_report_dir():
     os.makedirs(_REPORT_DIR, exist_ok=True)
 
 
+def _banner_lines(kind):
+    """The dated '=' banner opening every report block, shared across report kinds."""
+    return ["=" * _WIDTH,
+            f" {_REPORT_TITLES.get(kind, kind.upper() + ' REPORT')}",
+            f" Run: {_timestamp()}",
+            "=" * _WIDTH,
+            ""]
+
+
+def _append_block(path, block):
+    """Append a rendered block to a report file, separated from any prior block. Returns the path."""
+    _ensure_report_dir()
+    prefix = "\n" if os.path.isfile(path) and os.path.getsize(path) > 0 else ""
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write(prefix + block)
+    return path
+
+
 def _group_by_category(records):
     grouped = {}
     for record in records:
@@ -115,13 +139,7 @@ class Report:
 
     def write(self, records, elapsed, notes=None):
         """Append this run's dated block to the report file. Returns the file path."""
-        _ensure_report_dir()
-        path = self.path()
-        block = self._render_block(records, elapsed, notes)
-        prefix = "\n" if os.path.isfile(path) and os.path.getsize(path) > 0 else ""
-        with open(path, "a", encoding="utf-8") as fh:
-            fh.write(prefix + block)
-        return path
+        return _append_block(self.path(), self._render_block(records, elapsed, notes))
 
     def _render_block(self, records, elapsed, notes):
         pkg_w = max([len("Package")] + [len(r.name) for r in records]) if records else len("Package")
@@ -129,11 +147,7 @@ class Report:
             if records else len("Status")
         sub_indent = " " * (len(_INDENT) + pkg_w + len(_GAP))
 
-        lines = ["=" * _WIDTH,
-                 f" {_REPORT_TITLES.get(self.kind, self.kind.upper() + ' REPORT')}",
-                 f" Run: {_timestamp()}",
-                 "=" * _WIDTH,
-                 ""]
+        lines = _banner_lines(self.kind)
 
         for category, items in _group_by_category(records).items():
             lines.append(category.upper())
@@ -185,6 +199,64 @@ class Report:
             counts[record.status] = counts.get(record.status, 0) + 1
         parts = [f"{counts[s]} {_SUMMARY_LABEL[s]}" for s in _SUMMARY_ORDER if counts.get(s)]
         return " | ".join(parts) if parts else "nothing to do"
+
+
+def health_summary_line(checked_count, discrepancy_count):
+    """The one-line health summary shared by the report file and the terminal output."""
+    pkg_word = "package" if checked_count == 1 else "packages"
+    if discrepancy_count == 0:
+        tail = "no issues found"
+    elif discrepancy_count == 1:
+        tail = "1 discrepancy found"
+    else:
+        tail = f"{discrepancy_count} discrepancies found"
+    return f"Checked {checked_count} tracked {pkg_word} — {tail}"
+
+
+def write_health_report(checked, discrepancies):
+    """Append a dated health-check block to reports/health_check.txt. Returns the file path.
+
+    checked is a sequence of doctor.PackageStatus; discrepancies is the subset found missing.
+    Shares the dated-section format and column widths used by the installation reports.
+    """
+    path = os.path.join(_REPORT_DIR, _FILENAMES["health"])
+    return _append_block(path, _render_health_block(list(checked), list(discrepancies)))
+
+
+def _render_health_block(checked, discrepancies):
+    name_w = max([len("Package")] + [len(s.name) for s in checked])
+    status_w = max(len("Status"), len(_HEALTH_MISSING))
+
+    lines = _banner_lines("health")
+
+    if checked:
+        for category, items in _group_by_category(checked).items():
+            lines.append((category or "PACKAGES").upper())
+            lines.append("-" * _WIDTH)
+            lines.append(_INDENT + "Package".ljust(name_w) + _GAP + "Status".ljust(status_w)
+                         + _GAP + "Description")
+            lines.append(_INDENT + "-" * name_w + _GAP + "-" * status_w + _GAP + "-" * _DESC_DASHES)
+            for status in items:
+                label = _HEALTH_OK if status.present else _HEALTH_MISSING
+                lines.append(_INDENT + status.name.ljust(name_w) + _GAP
+                             + label.ljust(status_w) + _GAP + status.description)
+            lines.append("")
+    else:
+        lines.append("No tool-installed packages are being tracked yet.")
+        lines.append("")
+
+    if discrepancies:
+        lines.append("DISCREPANCIES")
+        lines.append("-" * _WIDTH)
+        for status in discrepancies:
+            lines.append(_INDENT + status.name.ljust(name_w) + _GAP
+                         + "tracked as installed but not found on the system")
+        lines.append("")
+
+    lines.append("-" * _WIDTH)
+    lines.append(f" SUMMARY: {health_summary_line(len(checked), len(discrepancies))}")
+    lines.append("=" * _WIDTH)
+    return "\n".join(lines) + "\n"
 
 
 def report_path(kind):

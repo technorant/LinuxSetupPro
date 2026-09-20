@@ -10,6 +10,8 @@ _PRIMARY_MARKER = os.path.join(_STATE_DIR, "primary_completed")
 _INSTALLED_MANIFEST = os.path.join(_STATE_DIR, "installed_packages.json")
 # Where a Primary/Secondary run got to, so an interrupted run can resume.
 _PROGRESS_MARKER = os.path.join(_STATE_DIR, "in_progress.json")
+# Last update-check finding, so startup can surface a newer version without a network call.
+_UPDATE_CACHE = os.path.join(_STATE_DIR, "update_check.json")
 
 
 def mark_primary_completed():
@@ -131,5 +133,36 @@ def clear_run():
     """Remove the in-progress run marker once a run ends or is declined. Best-effort."""
     try:
         os.remove(_PROGRESS_MARKER)
+    except OSError:
+        pass
+
+
+# --- Update-check cache (drives the startup update notice) ---
+
+def write_update_cache(latest, url):
+    """Cache a newer-version finding with a timestamp, so startup can show it offline. Best-effort."""
+    payload = {"latest": latest, "url": url, "checked_at": _timestamp()}
+    try:
+        _atomic_write_json(_UPDATE_CACHE, payload)
+    except (OSError, TypeError):
+        pass
+
+
+def read_update_cache():
+    """Return the cached update finding as a dict, or None if absent or unreadable."""
+    try:
+        with open(_UPDATE_CACHE, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict) or "latest" not in data:
+        return None
+    return data
+
+
+def clear_update_cache():
+    """Drop the cached update finding once the tool is current again. Best-effort."""
+    try:
+        os.remove(_UPDATE_CACHE)
     except OSError:
         pass
